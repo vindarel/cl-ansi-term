@@ -18,9 +18,10 @@
 ;;; You should have received a copy of the GNU General Public License along
 ;;; with this program. If not, see <http://www.gnu.org/licenses/>.
 
-(asdf:defsystem :mk-string-metrics
+(asdf:defsystem :cl-ansi-term
   :version      "0.1.0"
   :description  "library to output formatted text on ANSI-compliant terminals"
   :author       "Mark Karpov"
   :license      "GNU GPL v.3"
-  :components   ((:file "cl-ansi-term")))
+  :components   ((:file "cl-ansi-term"))
+  :depends-on   (:alexandria))

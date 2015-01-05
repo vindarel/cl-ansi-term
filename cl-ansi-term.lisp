@@ -22,8 +22,9 @@
   (:nicknames :term)
   (:use       #:common-lisp
               #:alexandria)
-  (:export    ))
+  (:export    #:defstyle
+              #:format)
+  (:shadow    #:format))
 
 (in-package #:cl-ansi-term)
 
-;;; ...
