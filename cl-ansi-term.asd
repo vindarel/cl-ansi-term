@@ -24,4 +24,5 @@
   :author       "Mark Karpov"
   :license      "GNU GPL v.3"
   :components   ((:file "cl-ansi-term"))
-  :depends-on   (:alexandria))
+  :depends-on   (:alexandria
+                 :anaphora))
