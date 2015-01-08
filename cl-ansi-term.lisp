@@ -23,10 +23,38 @@
   (:use       #:common-lisp
               #:alexandria
               #:anaphora)
-  (:export    #:update-style-sheet
+  (:export    #:*effects-enabled*
+              #:*terminal-width*
+              #:register-hook
+              #:remove-hook
+              #:update-style-sheet
               #:set-style))
 
 (in-package #:cl-ansi-term)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                        Parameters and Constants                        ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *effects-enabled* t
+  "If this variable is bound to non-NIL value, graphic rendition effects are
+enabled, otherwise they are disabled.")
+
+(defparameter *terminal-width* 80
+  "Many functions use this value to output text nicely. Default value is
+80. If you want to dynamically change this value, write and register
+:BEFORE-PRINTING hook and reassign it before printing takes place.")
+
+(defparameter *hooks* (make-hash-table)
+  "This variable is bound to hash table that provides access to lists of
+functions by given key. We use keywords as keys. Arguments for the functions
+depend entirely on EVENT on which every function is called.")
+
+(defparameter *style-sheet* (make-hash-table)
+  "This hash table contains strings for various styles of terminal output,
+defined with UPDATE-STYLE-SHEET.")
 
 (defparameter +foreground-colors+
   '((:default  . 39)
@@ -88,6 +116,37 @@ variants of 8 basic colors).")
     (:overlined . 53))
   "All supported rendition effects. Some of them are hardly ever supported.")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                                 Hooks                                  ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun register-hook (event function)
+  "Register a hook. When predefined EVENT occurs FUNCTION will be
+called. You can register many functions to call on the same event."
+  (push function (gethash event *hooks*))
+  nil)
+
+(defun remove-hook (event)
+  "Remove all registered functions that are called on EVENT. Returns T if
+there were any functions associated with EVENT and NIL otherwise."
+  (remhash event *hooks*))
+
+(defun perform-hook (event &rest args)
+  "Execute functions corresponding to given EVENT. We use this function to
+perform the hooks, so it's for internal use. Return T if there is at least
+one function associated with EVENT and NIL otherwise."
+  (awhen (gethash event *hooks*)
+    (dolist (x it t)
+      (apply x args))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                   Graphic Rendition and Style Sheet                    ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun ansi-escape-seq (&optional tokens)
   "Convert list of rendition tokens into ANSI escape sequence that will
 select appropriate parameters of rendition if 'printed' on ANSI-compatible
@@ -107,10 +166,6 @@ parameters will be returned."
                   (cdr (assoc background-color +background-colors+))
                   (cdr (assoc effect           +effects+)))))))
 
-(defparameter *style-sheet* (make-hash-table)
-  "This hash table contains strings for various styles of terminal output,
-defined with UPDATE-STYLE-SHEET.")
-
 (defun update-style-sheet (alist)
   "Updates style sheet used by the application. Every items of ALIST must be
 a list with CAR denoting name of style sheet entry and the rest should be
@@ -129,7 +184,36 @@ rendition."
           (remhash style *style-sheet*))))
   (setf (gethash :default *style-sheet*) (ansi-escape-seq)))
 
-(defun set-style (style)
-  "Sets terminal rendition according to defined STYLE."
-  (awhen (gethash style *style-sheet*)
-    (princ it)))
+(defun set-style (style &optional (stream *standard-output*))
+  "Sets terminal rendition according to defined STYLE. It does nothing if
+*EFFECTS-ENABLED* is NIL or output stream is not interactive (e.g.
+redirected to a file)."
+  (awhen (and *coloration-enabled*
+              (interactive-stream-p stream)
+              (gethash style *style-sheet*))
+    (princ it stream)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                               Utilities                                ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; format (= paragraphs: fill-column, justification, line prefix and postfix)
+
+;; ordered lists (with complex structure)
+
+;; unordered lists (with complex structure)
+
+;; tables (with borders (also invisible borders) and without them)
+
+(defun test-print (str style) ;; <-- testing
+  (set-style style)
+  (princ str)
+  (set-style :default)
+  (terpri)
+  (finish-output))
+
+(update-style-sheet ;; <-- testing
+ '((:error :red :b-green)
+   (:num :yellow :underline)))
