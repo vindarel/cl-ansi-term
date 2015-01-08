@@ -28,7 +28,9 @@
               #:register-hook
               #:remove-hook
               #:update-style-sheet
-              #:set-style))
+              #:set-style
+              #:hr
+              #:progress-bar))
 
 (in-package #:cl-ansi-term)
 
@@ -124,7 +126,12 @@ variants of 8 basic colors).")
 
 (defun register-hook (event function)
   "Register a hook. When predefined EVENT occurs FUNCTION will be
-called. You can register many functions to call on the same event."
+called. You can register many functions to call on the same event.
+
+Possible values of EVENT:
+
+:BEFORE-PRINTING - FUNCTION is invoked just before printing takes place.
+:AFTER-PRINTING - FUNCTION is invoked after printing."
   (push function (gethash event *hooks*))
   nil)
 
@@ -182,13 +189,15 @@ rendition."
       (if tokens
           (setf (gethash style *style-sheet*) (ansi-escape-seq tokens))
           (remhash style *style-sheet*))))
-  (setf (gethash :default *style-sheet*) (ansi-escape-seq)))
+  (setf (gethash :default *style-sheet*) (ansi-escape-seq))
+  (values))
 
 (defun set-style (style &optional (stream *standard-output*))
   "Sets terminal rendition according to defined STYLE. It does nothing if
 *EFFECTS-ENABLED* is NIL or output stream is not interactive (e.g.
-redirected to a file)."
-  (awhen (and *coloration-enabled*
+redirected to a file). This is low-level function and it's not recommended
+to use it directly."
+  (awhen (and *effects-enabled*
               (interactive-stream-p stream)
               (gethash style *style-sheet*))
     (princ it stream)))
@@ -199,21 +208,135 @@ redirected to a file)."
 ;;                                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; format (= paragraphs: fill-column, justification, line prefix and postfix)
+(defun print-partially (text start end stream)
+  "Partially print given TEXT starting from START character until END
+character is reached. All output goes to STREAM."
+  (do ((i start (1+ i)))
+      ((= i end))
+    (princ (char text i) stream)))
 
-;; ordered lists (with complex structure)
+(defun hr (&key
+             (filler #\-)
+             (style  :default)
+             (width  0)
+             (align  :left)
+             (stream *standard-output*))
+  "Print horizontal line. Characters in the line are created by repeating
+given FILLER (it must be a string designator) until WIDTH characters
+accumulated. If WIDTH is not a positive number, *TERMINAL-WIDTH* will be
+added to it to get positive WIDTH. STYLE controls graphic rendition if
+output device is interactive. ALIGN should be a keyword: :LEFT, :RIGHT,
+or :CENTER. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+  (perform-hook :before-printing)
+  (let* ((width (+ width (if (plusp width) 0 *terminal-width*)))
+         (white-space-len
+          (case align
+            (:right  (- *terminal-width* width))
+            (:center (floor (- *terminal-width* width)
+                            2))
+            (t       0))))
+    (dotimes (i white-space-len)
+      (princ #\space stream))
+    (set-style style stream)
+    (let* ((filler (string filler))
+           (fillen (length filler)))
+      (multiple-value-bind (rough rest)
+          (floor width fillen)
+        (dotimes (i rough)
+          (princ filler stream))
+        (print-partially filler 0 rest stream))))
+  (set-style :default stream)
+  (terpri stream)
+  (finish-output stream)
+  (perform-hook :after-printing)
+  (values))
+
+(defun progress-bar (label progress
+                     &key
+                       (margin 0)
+                       (label-style :default)
+                       (filler #\#)
+                       (bar-style :default)
+                       (num-style :default)
+                       (bar-width -40)
+                       (stream *standard-output*))
+  "Print progress bar. If PROGRESS is less than 100, move cursor to the
+beginning of current line, so next invocation of PROGRESS-BAR will rewrite
+it. This function doesn't print anything if PROGRESS is less than 100 and
+output stream is not interactive or *EFFECTS-ENABLED* is NIL. Insert MARGIN
+spaces, then LABEL (style for the label is set with LABEL-STYLE). Size of
+progress bar is set by BAR-WIDTH. If BAR-WIDTH is not a positive number, it
+*TERMINAL-WIDTH* will be added to it to get positive BAR-WIDTH. BAR-STYLE is
+the style that will be used for the bar itself, while NUM-STYLE will be used
+to number of percents and some additional elements. Output goes to
+STREAM (*STANDARD-OUTPUT* is default)."
+  (unless (and (< progress 100)
+               (or (not (interactive-stream-p stream))
+                   (not *effects-enabled*)))
+    (perform-hook :before-printing)
+    (let* ((bar-width (+ bar-width (if (plusp bar-width) 0 *terminal-width*)))
+           (total-cells (- bar-width 8))
+           (filled-cells (floor (/ (* total-cells progress) 100)))
+           (empty-cells (- total-cells filled-cells))
+           (filler (string filler)))
+      (dotimes (i margin)
+        (princ #\space stream))
+      (set-style label-style stream)
+      (princ label stream)
+      (set-style :default)
+      (dotimes (i (- *terminal-width*
+                     bar-width
+                     margin
+                     (length label)))
+        (princ #\space stream))
+      (set-style num-style stream)
+      (princ #\[ stream)
+      (set-style bar-style stream)
+      (multiple-value-bind (rough rest)
+          (floor filled-cells (length filler))
+        (dotimes (i rough)
+          (princ filler stream))
+        (print-partially filler 0 rest stream))
+      (set-style :default)
+      (dotimes (i empty-cells)
+        (princ #\space stream))
+      (set-style num-style stream)
+      (format stream "] ~3d %" progress)
+      (set-style :default stream)
+      (if (< progress 100)
+          (format stream "~c[0G" #\escape)
+          (terpri stream)))
+    (finish-output stream)
+    (perform-hook :after-printing))
+    (values))
 
 ;; unordered lists (with complex structure)
 
+;; ordered lists (with complex structure)
+
+;; format (= paragraphs: fill-column, justification, line prefix and postfix)
+
 ;; tables (with borders (also invisible borders) and without them)
 
-(defun test-print (str style) ;; <-- testing
+
+
+;;; testing...
+
+(defun test-print (str style)
   (set-style style)
   (princ str)
   (set-style :default)
   (terpri)
   (finish-output))
 
-(update-style-sheet ;; <-- testing
+(update-style-sheet
  '((:error :red :b-green)
-   (:num :yellow :underline)))
+   (:num :yellow :underline)
+   (:foo :cyan)))
+
+(defun bar-test ()
+  (progress-bar "boo" 15)
+  (sleep 1)
+  (progress-bar "boo" 75)
+  (sleep 1)
+  (progress-bar "boo" 100))
