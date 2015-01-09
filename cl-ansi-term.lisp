@@ -30,7 +30,10 @@
               #:update-style-sheet
               #:set-style
               #:hr
-              #:progress-bar))
+              #:progress-bar
+              #:u-list
+              #:o-list
+              #:format*))
 
 (in-package #:cl-ansi-term)
 
@@ -128,10 +131,10 @@ variants of 8 basic colors).")
   "Register a hook. When predefined EVENT occurs FUNCTION will be
 called. You can register many functions to call on the same event.
 
-Possible values of EVENT:
+Acceptable values of EVENT:
 
 :BEFORE-PRINTING - FUNCTION is invoked just before printing takes place.
-:AFTER-PRINTING - FUNCTION is invoked after printing."
+:AFTER-PRINTING  - FUNCTION is invoked after printing."
   (push function (gethash event *hooks*))
   nil)
 
@@ -208,12 +211,89 @@ to use it directly."
 ;;                                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun print-partially (text start end stream)
+(defun print-partially (text start end &optional (stream *standard-output*))
   "Partially print given TEXT starting from START character until END
-character is reached. All output goes to STREAM."
+character is reached. All output goes to STREAM (*STANDARD-OUTPUT* is
+default)."
   (do ((i start (1+ i)))
       ((= i end))
     (princ (char text i) stream)))
+
+(defun print-white-space (width &optional (stream *standard-output*))
+  "Print WIDTH white-spaces to STREAM (*STANDARD-OUTPUT* is default)."
+  (dotimes (i width)
+    (princ #\space stream)))
+
+(defmacro with-reasonable-width (var &body body)
+  "Rebind variable VAR, correcting its value in BODY. If VAR is not a
+positive number, *TERMINAL-WIDTH* will be added to it to get positive
+value that will be used."
+  `(let ((,var (+ ,var (if (plusp ,var) 0 *terminal-width*))))
+     ,@body))
+
+(defun align-object (width align &optional (stream *standard-output*))
+  "Print white-space to STREAM so object occupying WIDTH columns will be
+aligned according to ALIGN if printed immediately after the white-space."
+  (print-white-space
+   (case align
+     (:right  (- *terminal-width* width))
+     (:center (floor (- *terminal-width* width)
+                     2))
+     (t       0))
+   stream))
+
+(defun print-filler (filler width &optional (stream *standard-output*))
+  "Print WIDTH symbols of FILLER to STREAM. No style applied, handle it
+manually. FILLER must be a string designator."
+  (multiple-value-bind (rough rest)
+      (floor width (length (string filler)))
+    (dotimes (i rough)
+      (princ filler stream))
+    (print-partially filler 0 rest stream)))
+
+(defun print-words (object
+                    &key
+                      (style  :default)
+                      (margin 0)
+                      (fill-column 0)
+                      (stream *standard-output*))
+  "Print OBJECT using FILL-COLUMN so that line breaks don't happen inside
+words, only between them. This function can handle embedded escape sequences
+in textual representation of OBJECT graciously. Use STYLE to render
+OBJECT. MARGIN is not applied for the first line. If FILL-COLUMN is not a
+positive number, *TERMINAL-WIDTH* will be added to it to get positive
+FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+  (with-reasonable-width fill-column
+    (let* ((fill-column (- fill-column margin))
+           (text (string object))
+           (len  (length text)))
+      (do* ((start 0)
+            (end   (min (+ start fill-column)
+                        len)
+                   (min (+ start fill-column)
+                        len)))
+           ((= start end))
+        (destructuring-bind (break-pos . new-start)
+            (or (awhen (position #\newline text
+                                 :start start
+                                 :end   end)
+                  (cons it (1+ it)))
+                (when (< (- end start)
+                         fill-column)
+                  (cons end end))
+                (awhen (position #\space   text
+                                 :start    start
+                                 :end      end
+                                 :from-end t)
+                  (cons it (1+ it)))
+                (cons end end))
+          (when (plusp start)
+            (print-white-space margin stream))
+          (set-style style stream)
+          (print-partially text start break-pos stream)
+          (set-style :default stream)
+          (terpri stream)
+          (setf start new-start))))))
 
 (defun hr (&key
              (filler #\-)
@@ -228,23 +308,10 @@ added to it to get positive WIDTH. STYLE controls graphic rendition if
 output device is interactive. ALIGN should be a keyword: :LEFT, :RIGHT,
 or :CENTER. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
   (perform-hook :before-printing)
-  (let* ((width (+ width (if (plusp width) 0 *terminal-width*)))
-         (white-space-len
-          (case align
-            (:right  (- *terminal-width* width))
-            (:center (floor (- *terminal-width* width)
-                            2))
-            (t       0))))
-    (dotimes (i white-space-len)
-      (princ #\space stream))
+  (with-reasonable-width width
+    (align-object width align)
     (set-style style stream)
-    (let* ((filler (string filler))
-           (fillen (length filler)))
-      (multiple-value-bind (rough rest)
-          (floor width fillen)
-        (dotimes (i rough)
-          (princ filler stream))
-        (print-partially filler 0 rest stream))))
+    (print-filler filler width stream))
   (set-style :default stream)
   (terpri stream)
   (finish-output stream)
@@ -253,72 +320,191 @@ or :CENTER. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
 
 (defun progress-bar (label progress
                      &key
-                       (margin 0)
+                       (margin      0)
                        (label-style :default)
-                       (filler #\#)
-                       (bar-style :default)
-                       (num-style :default)
-                       (bar-width -40)
-                       (stream *standard-output*))
+                       (filler      #\#)
+                       (bar-style   :default)
+                       (num-style   :default)
+                       (bar-width   -40)
+                       (stream      *standard-output*))
   "Print progress bar. If PROGRESS is less than 100, move cursor to the
 beginning of current line, so next invocation of PROGRESS-BAR will rewrite
 it. This function doesn't print anything if PROGRESS is less than 100 and
 output stream is not interactive or *EFFECTS-ENABLED* is NIL. Insert MARGIN
 spaces, then LABEL (style for the label is set with LABEL-STYLE). Size of
-progress bar is set by BAR-WIDTH. If BAR-WIDTH is not a positive number, it
+progress bar is set by BAR-WIDTH. If BAR-WIDTH is not a positive number,
 *TERMINAL-WIDTH* will be added to it to get positive BAR-WIDTH. BAR-STYLE is
 the style that will be used for the bar itself, while NUM-STYLE will be used
-to number of percents and some additional elements. Output goes to
+for number of percents and some additional elements. Output goes to
 STREAM (*STANDARD-OUTPUT* is default)."
   (unless (and (< progress 100)
                (or (not (interactive-stream-p stream))
                    (not *effects-enabled*)))
     (perform-hook :before-printing)
-    (let* ((bar-width (+ bar-width (if (plusp bar-width) 0 *terminal-width*)))
-           (total-cells (- bar-width 8))
-           (filled-cells (floor (/ (* total-cells progress) 100)))
-           (empty-cells (- total-cells filled-cells))
-           (filler (string filler)))
-      (dotimes (i margin)
-        (princ #\space stream))
-      (set-style label-style stream)
-      (princ label stream)
-      (set-style :default)
-      (dotimes (i (- *terminal-width*
-                     bar-width
-                     margin
-                     (length label)))
-        (princ #\space stream))
-      (set-style num-style stream)
-      (princ #\[ stream)
-      (set-style bar-style stream)
-      (multiple-value-bind (rough rest)
-          (floor filled-cells (length filler))
-        (dotimes (i rough)
-          (princ filler stream))
-        (print-partially filler 0 rest stream))
-      (set-style :default)
-      (dotimes (i empty-cells)
-        (princ #\space stream))
-      (set-style num-style stream)
-      (format stream "] ~3d %" progress)
-      (set-style :default stream)
-      (if (< progress 100)
-          (format stream "~c[0G" #\escape)
-          (terpri stream)))
+    (with-reasonable-width bar-width
+      (let* ((total-cells  (- bar-width 8))
+             (filled-cells (floor (/ (* total-cells progress) 100)))
+             (empty-cells  (- total-cells filled-cells)))
+        (print-white-space margin stream)
+        (set-style label-style stream)
+        (princ label stream)
+        (set-style :default)
+        (print-white-space
+         (- *terminal-width*
+            bar-width
+            margin
+            (length label))
+         stream)
+        (set-style num-style stream)
+        (princ #\[ stream)
+        (set-style bar-style stream)
+        (print-filler filler filled-cells)
+        (set-style :default)
+        (print-white-space empty-cells stream)))
+    (set-style num-style stream)
+    (format stream "] ~3d %" progress)
+    (set-style :default stream)
+    (if (< progress 100)
+        (format stream "~c[0G" #\escape)
+        (terpri stream))
     (finish-output stream)
     (perform-hook :after-printing))
-    (values))
+  (values))
 
-;; unordered lists (with complex structure)
+(defun u-list (tree ;; use print words here
+               &key
+                 (bullet       "*-~^")
+                 (bullet-style :default)
+                 (item-style   :default)
+                 (level-margin 2)
+                 (fill-column  0)
+                 (stream       *standard-output*))
+  "Print unordered list according to TREE. If we consider TREE a list,
+every element must be either a printable object to print as a list item or a
+list where CAR is list item and CDR is sublist of the item. BULLET must be a
+string designator, it will be converted to string if needed and its
+characters will be used as bullets: zeroth character is bullet for top level
+to the list, first character is bullet for sublist, etc. If there are more
+levels of nesting than characters in the string, it will be
+cycled. BULLET-STYLE is used for bullets. It can be also list, in this case
+it's possible to specify different styles for different levels of
+nesting. ITEM-STYLE is used to render the list items. LEVEL-MARGIN must be a
+positive integer that specifies how to increase margin for every level of
+nesting. FILL-COLUMN is used to split long items, if it's not a positive
+number, *TERMINAL-WIDTH* will be added to it to get positive
+FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+  (let ((bullet (apply #'circular-list
+                       (coerce (string bullet) 'list)))
+        (bullet-style (apply #'circular-list
+                             (ensure-cons bullet-style))))
+    (labels ((print-item (level item bullet bullet-style)
+               (let ((margin (* level level-margin)))
+                 (print-white-space margin stream)
+                 (set-style (car bullet-style) stream)
+                 (princ (car bullet) stream)
+                 (set-style :default stream)
+                 (print-white-space (1- level-margin) stream)
+                 (let ((item (ensure-cons item)))
+                   (print-words (car item)
+                                :style       item-style
+                                :margin      (+ margin level-margin)
+                                :fill-column fill-column
+                                :stream stream)
+                   (dolist (subitem (cdr item))
+                     (print-item (1+ level)
+                                 subitem
+                                 (cdr bullet)
+                                 (cdr bullet-style)))))))
+      (perform-hook :before-printing)
+      (dolist (item tree)
+        (print-item 0 item bullet bullet-style))
+      (finish-output stream)
+      (perform-hook :after-printing)
+      (values))))
 
-;; ordered lists (with complex structure)
+(defun o-list (tree
+               &key
+                 (index        :arabic)
+                 (index-style  :default)
+                 (delimiter    #\.)
+                 (item-style   :default)
+                 (level-margin 3)
+                 (fill-column  0)
+                 (stream       *standard-output*))
+  "Print ordered list according to TREE. If we consider TREE a list,
+every element must be either a printable object to print as a list item or a
+list where CAR is list item and CDR is sublist of the item. INDEXE must be a
+list designator, its elements should be keywords that denote how to
+represent numeration. Acceptable values are:
+
+:ARABIC  - indexes will be printed as arabic numerals
+:ROMAN   - indexes will be printed as roman numerals
+:LETTER  - indexes will be printed as letters of Latin alphabet
+:CAPITAL - the same as :LETTER, but capital letters are used
+
+If there are more levels of nesting than elements in the list, it will be
+cycled. The same applies to DELIMITER, which must be string
+designator. INDEX-STYLE is used for indexes. It can be also list, in this
+case it's possible to specify different styles for different levels of
+nesting. ITEM-STYLE is used to render the list items. LEVEL-MARGIN must be a
+positive integer that specifies how to increase margin for every level of
+nesting. FILL-COLUMN is used to split long items, if it's not a positive
+number, *TERMINAL-OUTPUT* will be added to it to get positive
+FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+  (let ((index (apply #'circular-list
+                      (ensure-cons index)))
+        (index-style (apply #'circular-list
+                            (ensure-cons index-style)))
+        (delimiter (apply #'circular-list
+                          (coerce (string delimiter) 'list))))
+    (labels ((print-item (level i item index index-style delimiter)
+               (let ((margin (* level level-margin))
+                     (image  (case (car index)
+                               (:roman   (format nil "~@r~c"
+                                                 (1+ i)
+                                                 (car delimiter)))
+                               (:letter  (format nil "~c~c"
+                                                 (code-char (+ 97 i))
+                                                 (car delimiter)))
+                               (:capital (format nil "~c~c"
+                                                 (code-char (+ 65 i))
+                                                 (car delimiter)))
+                               (t        (format nil "~d~c"
+                                                 (1+ i)
+                                                 (car delimiter))))))
+                 (print-white-space margin stream)
+                 (set-style (car index-style) stream)
+                 (princ image stream)
+                 (set-style :default stream)
+                 (print-white-space (- level-margin (length image)) stream)
+                 (set-style item-style stream)
+                 (let ((item (ensure-cons item)))
+                   (print-words (car item)
+                                :style       item-style
+                                :margin      (+ margin level-margin)
+                                :fill-column fill-column
+                                :stream      stream)
+                   (do ((subitems (cdr item) (cdr subitems))
+                        (i 0 (1+ i)))
+                       ((null subitems))
+                     (print-item (1+ level)
+                                 i
+                                 (car subitems)
+                                 (cdr index)
+                                 (cdr index-style)
+                                 (cdr delimiter)))))))
+      (perform-hook :before-printing)
+      (do ((items tree (cdr items))
+           (i 0 (1+ i)))
+          ((null items))
+        (print-item 0 i (car items) index index-style delimiter))
+      (finish-output stream)
+      (perform-hook :after-printing)
+      (values))))
 
 ;; format (= paragraphs: fill-column, justification, line prefix and postfix)
 
 ;; tables (with borders (also invisible borders) and without them)
-
-
 
 ;;; testing...
 
@@ -340,3 +526,15 @@ STREAM (*STANDARD-OUTPUT* is default)."
   (progress-bar "boo" 75)
   (sleep 1)
   (progress-bar "boo" 100))
+
+(defparameter *test*
+  '("one"
+    ("two"
+     "one, this string is seems to be extremely long, because we need to test some stuff after all. So, does it work?"
+     "two"
+     ("three"
+      "one"
+      "two"))
+    "three"))
+
+(defparameter *wd* "this is very very very very very very very long line this is very very very very very very very long line")
