@@ -33,7 +33,7 @@
               #:progress-bar
               #:u-list
               #:o-list
-              #:format*))
+              #:puts))
 
 (in-package #:cl-ansi-term)
 
@@ -44,8 +44,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *effects-enabled* t
-  "If this variable is bound to non-NIL value, graphic rendition effects are
-enabled, otherwise they are disabled.")
+  "If this variable is bound to non-NIL value, graphic rendition
+effects (and other terminal-dependent effects) are enabled, otherwise they
+are disabled.")
 
 (defparameter *terminal-width* 80
   "Many functions use this value to output text nicely. Default value is
@@ -119,7 +120,8 @@ variants of 8 basic colors).")
     (:framed    . 51)
     (:encircled . 52)
     (:overlined . 53))
-  "All supported rendition effects. Some of them are hardly ever supported.")
+  "All supported rendition effects. Some of them are hardly ever
+supported.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
@@ -133,8 +135,12 @@ called. You can register many functions to call on the same event.
 
 Acceptable values of EVENT:
 
-:BEFORE-PRINTING - FUNCTION is invoked just before printing takes place.
-:AFTER-PRINTING  - FUNCTION is invoked after printing."
+:BEFORE-PRINTING - FUNCTION is invoked just before printing takes place, no
+argument is passed to the function
+:AFTER-PRINTING - FUNCTION is invoked after printing, no argument is passed
+to the function
+:ON-STYLE-CHANGE - FUNCTION is invoked before style changing escape sequence
+in printed. One argument is passed to FUNCTION, name of style."
   (push function (gethash event *hooks*))
   nil)
 
@@ -177,12 +183,12 @@ parameters will be returned."
                   (cdr (assoc effect           +effects+)))))))
 
 (defun update-style-sheet (alist)
-  "Updates style sheet used by the application. Every items of ALIST must be
+  "Updates style sheet used by the application. Every item of ALIST must be
 a list with CAR denoting name of style sheet entry and the rest should be
 collection of tokens that define terminal rendition. Tokens can represent
 various things: foreground color, background color, and effects. Every type
 of token has its defaults, so you can omit some tokens. However, if there
-more than one token of the same type (for example :RED and :GREEN - both
+are more than one token of the same type (for example :RED and :GREEN - both
 tokens represent foreground color), result is unpredictable and depends on
 internal workings of Common Lisp implementation used. You cannot
 redefine :DEFAULT style, it's always represent default parameters of
@@ -203,6 +209,7 @@ to use it directly."
   (awhen (and *effects-enabled*
               (interactive-stream-p stream)
               (gethash style *style-sheet*))
+    (perform-hook :on-style-change style)
     (princ it stream)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -242,36 +249,38 @@ aligned according to ALIGN if printed immediately after the white-space."
      (t       0))
    stream))
 
-(defun print-filler (filler width &optional (stream *standard-output*))
-  "Print WIDTH symbols of FILLER to STREAM. No style applied, handle it
-manually. FILLER must be a string designator."
+(defun print-filler (filler width style &optional (stream *standard-output*))
+  "Print WIDTH symbols of FILLER to STREAM. Use STYLE for graphic
+rendition. FILLER must be a string designator."
   (multiple-value-bind (rough rest)
       (floor width (length (string filler)))
+    (set-style style)
     (dotimes (i rough)
       (princ filler stream))
-    (print-partially filler 0 rest stream)))
+    (print-partially filler 0 rest stream)
+    (set-style :default)))
 
 (defun print-words (object
                     &key
-                      (style  :default)
-                      (margin 0)
+                      (style       :default)
+                      (margin      0)
                       (fill-column 0)
-                      (stream *standard-output*))
+                      (align       :left)
+                      (stream      *standard-output*))
   "Print OBJECT using FILL-COLUMN so that line breaks don't happen inside
 words, only between them. This function can handle embedded escape sequences
 in textual representation of OBJECT graciously. Use STYLE to render
 OBJECT. MARGIN is not applied for the first line. If FILL-COLUMN is not a
 positive number, *TERMINAL-WIDTH* will be added to it to get positive
-FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+FILL-COLUMN. Output can be aligned with ALIGN parameter. Output goes to
+STREAM (*STANDARD-OUTPUT* is default)."
   (with-reasonable-width fill-column
     (let* ((fill-column (- fill-column margin))
            (text (string object))
            (len  (length text)))
       (do* ((start 0)
-            (end   (min (+ start fill-column)
-                        len)
-                   (min (+ start fill-column)
-                        len)))
+            (end   (min (+ start fill-column) len)
+                   (min (+ start fill-column) len)))
            ((= start end))
         (destructuring-bind (break-pos . new-start)
             (or (awhen (position #\newline text
@@ -289,6 +298,9 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                 (cons end end))
           (when (plusp start)
             (print-white-space margin stream))
+          (align-object (+ (- break-pos start) margin)
+                        align
+                        stream)
           (set-style style stream)
           (print-partially text start break-pos stream)
           (set-style :default stream)
@@ -310,9 +322,7 @@ or :CENTER. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
   (perform-hook :before-printing)
   (with-reasonable-width width
     (align-object width align)
-    (set-style style stream)
-    (print-filler filler width stream))
-  (set-style :default stream)
+    (print-filler filler width style stream))
   (terpri stream)
   (finish-output stream)
   (perform-hook :after-printing)
@@ -357,9 +367,10 @@ STREAM (*STANDARD-OUTPUT* is default)."
          stream)
         (set-style num-style stream)
         (princ #\[ stream)
-        (set-style bar-style stream)
-        (print-filler filler filled-cells)
-        (set-style :default)
+        (print-filler filler
+                      filled-cells
+                      bar-style
+                      stream)
         (print-white-space empty-cells stream)))
     (set-style num-style stream)
     (format stream "] ~3d %" progress)
@@ -371,34 +382,36 @@ STREAM (*STANDARD-OUTPUT* is default)."
     (perform-hook :after-printing))
   (values))
 
-(defun u-list (tree ;; use print words here
+(defun u-list (tree
                &key
                  (bullet       "*-~^")
                  (bullet-style :default)
                  (item-style   :default)
+                 (margin       0)
                  (level-margin 2)
                  (fill-column  0)
                  (stream       *standard-output*))
   "Print unordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
-list where CAR is list item and CDR is sublist of the item. BULLET must be a
-string designator, it will be converted to string if needed and its
+list where CAR is the list item and CDR is sublist of the item. BULLET must
+be a string designator, it will be converted to string if needed and its
 characters will be used as bullets: zeroth character is bullet for top level
-to the list, first character is bullet for sublist, etc. If there are more
+of the list, first character is bullet for sublist, etc. If there are more
 levels of nesting than characters in the string, it will be
-cycled. BULLET-STYLE is used for bullets. It can be also list, in this case
-it's possible to specify different styles for different levels of
+cycled. BULLET-STYLE is used for bullets. It can be also a list, in this
+case it's possible to specify different styles for different levels of
 nesting. ITEM-STYLE is used to render the list items. LEVEL-MARGIN must be a
 positive integer that specifies how to increase margin for every level of
-nesting. FILL-COLUMN is used to split long items, if it's not a positive
-number, *TERMINAL-WIDTH* will be added to it to get positive
-FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+nesting, you can also use plain MARGIN. FILL-COLUMN is used to split long
+items, if it's not a positive number, *TERMINAL-WIDTH* will be added to it
+to get positive FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is
+default)."
   (let ((bullet (apply #'circular-list
                        (coerce (string bullet) 'list)))
         (bullet-style (apply #'circular-list
                              (ensure-cons bullet-style))))
     (labels ((print-item (level item bullet bullet-style)
-               (let ((margin (* level level-margin)))
+               (let ((margin (+ margin (* level level-margin))))
                  (print-white-space margin stream)
                  (set-style (car bullet-style) stream)
                  (princ (car bullet) stream)
@@ -428,12 +441,13 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                  (index-style  :default)
                  (delimiter    #\.)
                  (item-style   :default)
+                 (margin       0)
                  (level-margin 3)
                  (fill-column  0)
                  (stream       *standard-output*))
   "Print ordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
-list where CAR is list item and CDR is sublist of the item. INDEXE must be a
+list where CAR is list item and CDR is sublist of the item. INDEX must be a
 list designator, its elements should be keywords that denote how to
 represent numeration. Acceptable values are:
 
@@ -448,9 +462,10 @@ designator. INDEX-STYLE is used for indexes. It can be also list, in this
 case it's possible to specify different styles for different levels of
 nesting. ITEM-STYLE is used to render the list items. LEVEL-MARGIN must be a
 positive integer that specifies how to increase margin for every level of
-nesting. FILL-COLUMN is used to split long items, if it's not a positive
-number, *TERMINAL-OUTPUT* will be added to it to get positive
-FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+nesting, you can also use plain MARGIN. FILL-COLUMN is used to split long
+items, if it's not a positive number, *TERMINAL-OUTPUT* will be added to it
+to get positive FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is
+default)."
   (let ((index (apply #'circular-list
                       (ensure-cons index)))
         (index-style (apply #'circular-list
@@ -458,7 +473,7 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
         (delimiter (apply #'circular-list
                           (coerce (string delimiter) 'list))))
     (labels ((print-item (level i item index index-style delimiter)
-               (let ((margin (* level level-margin))
+               (let ((margin (+ margin (* level level-margin)))
                      (image  (case (car index)
                                (:roman   (format nil "~@r~c"
                                                  (1+ i)
@@ -502,7 +517,35 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
       (perform-hook :after-printing)
       (values))))
 
-;; format (= paragraphs: fill-column, justification, line prefix and postfix)
+(defun puts (text
+             &key
+               (args        nil)
+               (args-style  :default)
+               (base-style  :default)
+               (margin      0)
+               (fill-column 0)
+               (align       :left)
+               (stream      *standard-output*))
+  "Print TEXT. TEXT may contain format-like directives. Arguments will be
+taken from ARGS-STYLE, it should be list designator. ARGS-STYLE should be
+list designator too, it specifies styles of graphic rendition for every
+argument. It will be cycled if number of elements is
+insufficient. BASE-STYLE specifies graphic rendition of plain text in
+TEXT. MARGIN, FILL-COLUMN, and ALIGN control corresponding parameters of
+output. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+  (let ((args       (ensure-cons args))
+        (args-style (apply #'circular-list
+                           (ensure-cons args-style))))
+    (declare (ignore args-style)) ; testing
+    (print-white-space margin stream)
+    (print-words (apply #'format nil text args)
+                 :style base-style
+                 :margin margin
+                 :fill-column fill-column
+                 :align align
+                 :stream stream)))
+
+;(defun table (
 
 ;; tables (with borders (also invisible borders) and without them)
 
