@@ -35,7 +35,7 @@ See contents of directory `doc`. Documentation is also available online:
 
 https://mrkkrp.github.io/cl-ansi-term
 
-## Copyright
+## License
 
 Copyright (c) 2015 Mark Karpov
 
