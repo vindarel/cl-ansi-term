@@ -624,9 +624,8 @@ ALIGN can also be specified. Valid values of ALIGN are: :LEFT (default
 value), :CENTER, and :RIGHT. Output goes to STREAM."
   (check-type column-width (integer 4))
   (perform-hook :before-printing stream)
-  (let* ((columns (length (extremum objects #'>
-                                    :key (compose #'length
-                                                  #'ensure-list))))
+  (let* ((objects (mapcar #'ensure-cons objects))
+         (columns (length (extremum objects #'> :key #'length)))
          (width (1+ (* columns column-width)))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))
@@ -653,7 +652,7 @@ value), :CENTER, and :RIGHT. Output goes to STREAM."
                (align)
                (let ((i 0))
                  (dolist (cell items)
-                   (let ((cell (string cell)))
+                   (let ((cell (string* cell)))
                      (v-border)
                      (set-style
                       (cond ((ends-with-subseq mark-suffix cell) mark-style)
@@ -673,7 +672,7 @@ value), :CENTER, and :RIGHT. Output goes to STREAM."
                  (terpri))))
       (dolist (row objects)
         (h-border)
-        (print-row row-index (ensure-cons row))
+        (print-row row-index row)
         (incf row-index))
       (h-border)))
   (finish-output stream)
