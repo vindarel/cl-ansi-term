@@ -28,11 +28,11 @@
               #:register-hook
               #:remove-hook
               #:update-style-sheet
+              #:cat-print
               #:hr
               #:progress-bar
               #:u-list
               #:o-list
-              #:cat-print
               #:table))
 
 (in-package #:cl-ansi-term)
@@ -51,7 +51,8 @@ are disabled.")
 (defparameter *terminal-width* 80
   "Many functions use this value to output text nicely. Default value is
 80. If you want to dynamically change this value, write and register
-:BEFORE-PRINTING hook and reassign it before printing takes place.")
+:BEFORE-PRINTING hook and reassign terminal width before printing takes
+place.")
 
 (defparameter *hooks* (make-hash-table)
   "This variable is bound to hash table that provides access to lists of
@@ -61,6 +62,11 @@ depend entirely on EVENT on which every function is called.")
 (defparameter *style-sheet* (make-hash-table)
   "This hash table contains strings for various styles of terminal output,
 defined with UPDATE-STYLE-SHEET.")
+
+(defparameter *coloration* nil
+  "Alist where CARs are indexes at which to insert ANSI escape sequences to
+change graphical rendition and CDRs are keywords that denote style of the
+rendition. This special variable can be used to affect PRINT-PARTIALLY.")
 
 (defparameter +foreground-colors+
   '((:default  . 39)
@@ -140,7 +146,8 @@ argument is passed to the function
 :AFTER-PRINTING - FUNCTION is invoked after printing, no argument is passed
 to the function
 :ON-STYLE-CHANGE - FUNCTION is invoked before style changing escape sequence
-in printed. One argument is passed to FUNCTION, name of style."
+in printed. One argument is passed to FUNCTION, name of the style, which is
+a keyword."
   (push function (gethash event *hooks*))
   nil)
 
@@ -201,24 +208,22 @@ rendition."
   (setf (gethash :default *style-sheet*) (ansi-escape-seq))
   (values))
 
-(declaim (inline supports-effects-p))
+(declaim (inline effects-p))
 
-(defun supports-effects-p (stream)
+(defun effects-p (stream)
   "Evaluates to T if STREAM has support for the effects and
 *EFFECTS-ENABLED* is not NIL."
   (and *effects-enabled*
        (interactive-stream-p stream)))
 
-(defun set-style (style &optional
-                          (stream *standard-output*)
-                          output)
+(defun set-style (style &optional (stream *standard-output*))
   "Sets terminal rendition according to defined STYLE. It does nothing if
 *EFFECTS-ENABLED* is NIL or output stream is not interactive (e.g.
 redirected to a file)."
-  (awhen (and (supports-effects-p stream)
+  (awhen (and (effects-p stream)
               (gethash style *style-sheet*))
     (perform-hook :on-style-change style)
-    (princ it (or output stream))))
+    (princ it stream)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
@@ -226,12 +231,16 @@ redirected to a file)."
 ;;                                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun print-partially (text start end &optional (stream *standard-output*))
+(defun print-partially (text start end stream)
   "Partially print given TEXT starting from START character until END
-character is reached. All output goes to STREAM (*STANDARD-OUTPUT* is
-default)."
+character is reached. Output will be colorized if *COLORATION* is bound to
+alist that describes how to colorize the output, see *COLORATION*. All
+output goes to STREAM (*STANDARD-OUTPUT* is default)."
   (do ((i start (1+ i)))
       ((= i end))
+    (when (and *coloration*
+               (= i (caar *coloration*)))
+      (set-style (cdr (pop *coloration*)) stream))
     (princ (char text i) stream)))
 
 (defun print-white-space (width &optional (stream *standard-output*))
@@ -248,7 +257,7 @@ value that will be used."
 
 (defun align-object (width align &optional (stream *standard-output*))
   "Print white-space to STREAM so object occupying WIDTH columns will be
-aligned according to ALIGN if printed immediately after the white-space."
+aligned according to ALIGN if printed immediately after the white space."
   (print-white-space
    (case align
      (:right  (- *terminal-width* width))
@@ -257,35 +266,57 @@ aligned according to ALIGN if printed immediately after the white-space."
      (t       0))
    stream))
 
+(defun string* (object)
+  "Converts printable object OBJECT to its aesthetic string representation."
+  (format nil "~a" object))
+
 (defun print-filler (filler width style &optional (stream *standard-output*))
   "Print WIDTH symbols of FILLER to STREAM. Use STYLE for graphic
-rendition. FILLER must be a string designator."
+rendition."
   (multiple-value-bind (rough rest)
-      (floor width (length (string filler)))
+      (floor width (length (string* filler)))
     (set-style style)
     (dotimes (i rough)
       (princ filler stream))
     (print-partially filler 0 rest stream)
     (set-style :default)))
 
-(defun print-words (object
+(defun print-words (objects
                     &key
-                      (style       nil)
+                      (base-style  :default)
                       (margin      0)
                       (fill-column 0)
                       (align       :left)
                       (stream      *standard-output*))
-  "Print OBJECT using FILL-COLUMN so that line breaks don't happen inside
-words, only between them. This function can handle embedded escape sequences
-in textual representation of OBJECT graciously. Use STYLE to render
-OBJECT. MARGIN is not applied for the first line. If FILL-COLUMN is not a
-positive number, *TERMINAL-WIDTH* will be added to it to get positive
-FILL-COLUMN. Output can be aligned with ALIGN parameter. Output goes to
-STREAM (*STANDARD-OUTPUT* is default)."
+  "Print concatenation of OBJECTS using FILL-COLUMN so that line breaks
+don't happen inside words, only between them. OBJECTS must be a list
+designator. It can consist of printable objects and lists where CAR is a
+printable object and CADR is a keyword that denotes style of the string
+designator. Unspecified styles default to BASE-STYLE. MARGIN is not applied
+for the first line. If FILL-COLUMN is not a positive number,
+*TERMINAL-WIDTH* will be added to it to get positive FILL-COLUMN. Output can
+be aligned with ALIGN parameter. Output goes to STREAM (*STANDARD-OUTPUT* is
+default)."
   (with-reasonable-width fill-column
-    (let* ((fill-column (- fill-column margin))
-           (text (string object))
-           (len  (length text)))
+    (let ((fill-column (- fill-column margin))
+          (text (make-array 0
+                            :element-type 'character
+                            :fill-pointer 0
+                            :adjustable t))
+          (*coloration* nil)
+          (len 0))
+      (with-output-to-string (stream text)
+        (flet ((proc-object (obj style)
+                 (push (cons len style) *coloration*)
+                 (incf len (length (string* obj)))
+                 (princ obj stream)))
+          (dolist (object (ensure-cons objects))
+            (if (consp object)
+                (destructuring-bind (printable style)
+                    object
+                  (proc-object printable style))
+                (proc-object object base-style)))))
+      (setf *coloration* (nreverse *coloration*))
       (do* ((start 0)
             (end   (min (+ start fill-column) len)
                    (min (+ start fill-column) len)))
@@ -306,15 +337,38 @@ STREAM (*STANDARD-OUTPUT* is default)."
                 (cons end end))
           (when (plusp start)
             (print-white-space margin stream))
-          (align-object (+ (- break-pos start) margin) ;;; slip when colored
+          (align-object (+ (- break-pos start) margin)
                         align
                         stream)
-          (when style
-            (set-style style stream))
           (print-partially text start break-pos stream)
           (set-style :default stream)
           (terpri stream)
           (setf start new-start))))))
+
+(defun cat-print (objects
+                  &key
+                    (base-style  :default)
+                    (margin      0)
+                    (fill-column 0)
+                    (align       :left)
+                    (stream      *standard-output*))
+  "Concatenate OBJECTS and print them. OBJECTS must be a list that consists
+of printable objects and lists where CAR is a printable object and CADR is a
+keyword that denotes style of the object. Unspecified styles default to
+BASE-STYLE. MARGIN, FILL-COLUMN, and ALIGN control corresponding parameters
+of output. Valid values for ALIGN are :LEFT (default), :CENTER,
+and :RIGHT. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
+  (perform-hook :before-printing)
+  (print-white-space margin stream)
+  (print-words objects
+               :base-style base-style
+               :margin margin
+               :fill-column fill-column
+               :align align
+               :stream stream)
+  (finish-output stream)
+  (perform-hook :after-printing)
+  (values))
 
 (defun hr (&key
              (filler #\-)
@@ -322,11 +376,10 @@ STREAM (*STANDARD-OUTPUT* is default)."
              (width  0)
              (align  :left)
              (stream *standard-output*))
-  "Print horizontal line. Characters in the line are created by repeating
-given FILLER (it must be a string designator) until WIDTH characters
-accumulated. If WIDTH is not a positive number, *TERMINAL-WIDTH* will be
-added to it to get positive WIDTH. STYLE controls graphic rendition if
-output device is interactive. ALIGN should be a keyword: :LEFT, :RIGHT,
+  "Print a horizontal line. Characters in the line are created by repeating
+given FILLER until WIDTH characters accumulated. If WIDTH is not a positive
+number, *TERMINAL-WIDTH* will be added to it to get positive WIDTH. STYLE
+controls graphic rendition. ALIGN should be a keyword: :LEFT, :RIGHT,
 or :CENTER. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
   (perform-hook :before-printing)
   (with-reasonable-width width
@@ -346,7 +399,7 @@ or :CENTER. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                        (num-style   :default)
                        (bar-width   -40)
                        (stream      *standard-output*))
-  "Print progress bar. If PROGRESS is less than 100, move cursor to the
+  "Print a progress bar. If PROGRESS is less than 100, move cursor to the
 beginning of current line, so next invocation of PROGRESS-BAR will rewrite
 it. This function doesn't print anything if PROGRESS is less than 100 and
 output stream is not interactive or *EFFECTS-ENABLED* is NIL. Insert MARGIN
@@ -357,7 +410,7 @@ the style that will be used for the bar itself, while NUM-STYLE will be used
 for number of percents and some additional elements. Output goes to
 STREAM (*STANDARD-OUTPUT* is default)."
   (unless (and (< progress 100)
-               (not (supports-effects-p stream)))
+               (not (effects-p stream)))
     (perform-hook :before-printing)
     (with-reasonable-width bar-width
       (let* ((total-cells  (- bar-width 8))
@@ -381,7 +434,15 @@ STREAM (*STANDARD-OUTPUT* is default)."
                       stream)
         (print-white-space empty-cells stream)))
     (set-style num-style stream)
-    (format stream "] ~3d %" progress)
+    (princ #\] stream)
+    (set-style :default stream)
+    (print-white-space 1 stream)
+    (set-style num-style stream)
+    (format stream "~3d" progress)
+    (set-style :default stream)
+    (print-white-space 1 stream)
+    (set-style num-style stream)
+    (princ #\% stream)
     (set-style :default stream)
     (if (< progress 100)
         (format stream "~c[0G" #\escape)
@@ -401,18 +462,18 @@ STREAM (*STANDARD-OUTPUT* is default)."
                  (level-margin 2)
                  (fill-column  0)
                  (stream       *standard-output*))
-  "Print unordered list according to TREE. If we consider TREE a list,
+  "Print an unordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
 list where CAR is the list item and CDR is sublist of the item. BULLET must
 be a string designator, it will be converted to string if needed and its
-characters will be used as bullets: zeroth character is bullet for top level
-of the list, first character is bullet for sublist, etc. If there are more
-levels of nesting than characters in the string, it will be
+characters will be used as bullets: zeroth character will be the bullet for
+top level of the list, first character is the bullet for sublist, etc. If
+there are more levels of nesting than characters in the string, it will be
 cycled. BULLET-STYLE is used for bullets. It can be also a list, in this
 case it's possible to specify different styles for different levels of
 nesting. ITEM-STYLE is used to render the list items. MARK-STYLE is used for
-items that end with MARK-SUFFIX (it should be a string
-designator). LEVEL-MARGIN must be a positive integer that specifies how to
+items that end with MARK-SUFFIX (it can be any printable
+object). LEVEL-MARGIN must be a positive integer that specifies how to
 increase margin for every level of nesting, you can also use plain
 MARGIN. FILL-COLUMN is used to split long items, if it's not a positive
 number, *TERMINAL-WIDTH* will be added to it to get positive
@@ -421,7 +482,7 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                              (coerce (string bullet) 'list)))
         (bullet-style (apply #'circular-list
                              (ensure-cons bullet-style)))
-        (mark-suffix  (string mark-suffix)))
+        (mark-suffix  (string* mark-suffix)))
     (labels ((print-item (level item bullet bullet-style)
                (let ((margin (+ margin (* level level-margin))))
                  (print-white-space margin stream)
@@ -429,10 +490,11 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                  (princ (car bullet) stream)
                  (set-style :default stream)
                  (print-white-space (1- level-margin) stream)
-                 (let ((item (ensure-cons item)))
-                   (print-words (car item)
-                                :style       (if (ends-with-subseq mark-suffix
-                                                                   (car item))
+                 (let* ((item (ensure-cons item))
+                        (words (string* (car item))))
+                   (print-words words
+                                :base-style  (if (ends-with-subseq mark-suffix
+                                                                   words)
                                                  mark-style
                                                  item-style)
                                 :margin      (+ margin level-margin)
@@ -478,8 +540,8 @@ cycled. The same applies to DELIMITER, which must be string
 designator. INDEX-STYLE is used for indexes. It can be also list, in this
 case it's possible to specify different styles for different levels of
 nesting. ITEM-STYLE is used to render the list items. MARK-STYLE is used for
-items that end with MARK-SUFFIX (it should be a string
-designator). LEVEL-MARGIN must be a positive integer that specifies how to
+items that end with MARK-SUFFIX (it can be any printable
+object). LEVEL-MARGIN must be a positive integer that specifies how to
 increase margin for every level of nesting, you can also use plain
 MARGIN. FILL-COLUMN is used to split long items, if it's not a positive
 number, *TERMINAL-OUTPUT* will be added to it to get positive
@@ -490,7 +552,7 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                             (ensure-cons index-style)))
         (delimiter   (apply #'circular-list
                             (coerce (string delimiter) 'list)))
-        (mark-suffix (string mark-suffix)))
+        (mark-suffix (string* mark-suffix)))
     (labels ((print-item (level i item index index-style delimiter)
                (let ((margin (+ margin (* level level-margin)))
                      (image  (case (car index)
@@ -512,10 +574,11 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
                  (set-style :default stream)
                  (print-white-space (- level-margin (length image)) stream)
                  (set-style item-style stream)
-                 (let ((item (ensure-cons item)))
-                   (print-words (car item)
-                                :style       (if (ends-with-subseq mark-suffix
-                                                                   (car item))
+                 (let* ((item (ensure-cons item))
+                        (words (string* (car item))))
+                   (print-words words
+                                :base-style  (if (ends-with-subseq mark-suffix
+                                                                   words)
                                                  mark-style
                                                  item-style)
                                 :margin      (+ margin level-margin)
@@ -539,79 +602,36 @@ FILL-COLUMN. Output goes to STREAM (*STANDARD-OUTPUT* is default)."
       (perform-hook :after-printing)
       (values))))
 
-(defun cat-print (objects
-                  &key
-                    (base-style  :default)
-                    (margin      0)
-                    (fill-column 0)
-                    (align       :left)
-                    (stream      *standard-output*))
-  "Concatenate OBJECTS and print them. OBJECTS must be a list that consists
-of strings designators and lists where CAR is a string designator and CADR
-is a keyword that denotes style of the string designator. Style of single
-string designators defaults to BASE-STYLE. MARGIN, FILL-COLUMN, and ALIGN
-control corresponding parameters of output. Output goes to
-STREAM (*STANDARD-OUTPUT* is default)."
-  (let ((text
-         (with-output-to-string (temp)
-           (dolist (object objects)
-             (if (consp object)
-                 (destructuring-bind (str style)
-                     object
-                   (set-style style stream temp)
-                   (princ str temp))
-                 (progn
-                   (set-style base-style stream temp)
-                   (princ object temp)))))))
-    (if stream
-        (progn
-          (perform-hook :before-printing)
-          (print-white-space margin stream)
-          (print-words text
-                       :margin margin
-                       :fill-column fill-column
-                       :align align
-                       :stream stream)
-          (finish-output stream)
-          (perform-hook :after-printing)
-          (values))
-        text)))
-
 (defun table (objects
               &key
-                (columns      1)
                 (mark-suffix  #\*)
                 (border-chars "-|+")
                 (border-style :default)
                 (header-style :default)
                 (cell-style   :default)
                 (mark-style   :default)
+                (col-header   nil)
                 (margin       0)
                 (column-width 10)
                 (align        :left)
                 (stream       *standard-output*))
-  "Print a table that has COLUMNS columns filling cells with OBJECTS (list
-of printable objects). If BORDER-STYLE is NIL, no border will be printed,
-otherwise BORDER-STYLE is expected to be a keyword that denotes style in
-which borders of the table should be printed. HEADER-STYLE will be applied
-to first row of the table and CELL-STYLE will be applied to all other
-rows. Objects that end with MARK-SUFFIX will be printed using
-MARK-STYLE. MARGIN, COLUMN-WIDTH, and ALIGN can also be specified. Output
-goes to STREAM, (*STANDARD-OUTPUT* is default)."
+  "Print a table filling cells with OBJECTS. OBJECTS must be a list of list
+designators. If BORDER-STYLE is NIL, no border will be printed, otherwise
+BORDER-STYLE is expected to be a keyword that denotes style in which borders
+of the table should be printed. HEADER-STYLE will be applied to the first
+row of the table (also to the first column if COL-HEADER is not NIL) and
+CELL-STYLE will be applied to all other rows. Objects that end with
+MARK-SUFFIX will be printed using MARK-STYLE. MARGIN, COLUMN-WIDTH, and
+ALIGN can also be specified. Valid values of ALIGN are: :LEFT, :CENTER,
+and :RIGHT. Output goes to STREAM, (*STANDARD-OUTPUT* is default)."
   (check-type column-width (integer 4))
   (perform-hook :before-printing stream)
-  (let ((width (1+ (* columns column-width)))
-        (border-chars (string border-chars))
-        (mark-suffix (string mark-suffix))
-        (row-index 0))
-    (labels ((group-into (n list)
-               (check-type n (integer 1))
-               (labels ((f (tail &optional acc)
-                          (aif (nthcdr n tail)
-                               (f it (cons (subseq tail 0 n) acc))
-                               (nreverse (cons tail acc)))))
-                 (f list)))
-             (align ()
+  (let* ((columns (length (extremum objects #'> :key #'length)))
+         (width (1+ (* columns column-width)))
+         (border-chars (string border-chars))
+         (mark-suffix (string mark-suffix))
+         (row-index 0))
+    (labels ((align ()
                (print-white-space margin stream)
                (align-object (+ width margin) align stream))
              (h-border ()
@@ -625,12 +645,10 @@ goes to STREAM, (*STANDARD-OUTPUT* is default)."
                  (set-style :default stream)
                  (terpri stream)))
              (v-border ()
-               (if border-style
-                   (progn
-                     (set-style border-style stream)
-                     (princ (char border-chars 1))
-                     (set-style :default stream))
-                   (print-white-space 1 stream)))
+               (when border-style
+                 (set-style border-style stream)
+                 (princ (char border-chars 1))
+                 (set-style :default stream)))
              (print-row (index items)
                (align)
                (let ((i 0))
@@ -640,34 +658,24 @@ goes to STREAM, (*STANDARD-OUTPUT* is default)."
                      (set-style
                       (cond ((ends-with-subseq mark-suffix cell) mark-style)
                             ((zerop index) header-style)
-                            (t             cell-style))
+                            ((and col-header (zerop i)) header-style)
+                            (t cell-style))
                       stream)
                      (princ cell stream)
                      (set-style :default stream)
-                     (print-white-space (- column-width (length cell) 1)
+                     (print-white-space (- column-width
+                                           (length cell)
+                                           (if border-style 1 0))
                                         stream)
                      (incf i)))
                  (print-white-space (* (- columns i) column-width) stream)
                  (v-border)
                  (terpri))))
-      (dolist (row (group-into columns objects))
+      (dolist (row objects)
         (h-border)
-        (print-row row-index row)
+        (print-row row-index (ensure-cons row))
         (incf row-index))
       (h-border)))
   (finish-output stream)
   (perform-hook :after-printing stream)
   (values))
-
-(defparameter *table*
-  '("type" "value" "fuck"
-    "female" "good" "yes *"
-    "bitch" "good" "yes"))
-
-(update-style-sheet
- '((:header :cyan :underline)
-   (:mark   :red  :inverse)))
-
-;; more types of elements should be possible to print
-;; fix print-words bug (possibly fix set-style...)
-;; tables with no borders
