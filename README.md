@@ -29,6 +29,12 @@ file. It's also possible to disable all effects and coloration.
 Download or clone the repository and put it into some place where ASDF can
 find it.
 
+Via Quicklisp:
+
+```
+(ql:quickload "cl-ansi-term")
+```
+
 ## Documentation
 
 See contents of directory `doc`. Documentation is also available online:
