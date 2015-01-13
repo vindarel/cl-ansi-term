@@ -18,7 +18,7 @@ terminal, as well as redirect to a file without any loss.
 output. Define styles, give them names, specify foreground colors,
 background colors, and effects for every style.
 
-`cl-ansi-term` provides hooks to fully control the library.
+`cl-ansi-term` provides hooks to give more control over the library.
 
 `cl-ansi-term` is able to detect whether output goes to a terminal or to a
 file. If the latter case takes place, no escape sequences will get into the
