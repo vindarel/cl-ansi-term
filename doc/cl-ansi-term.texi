@@ -1,0 +1,400 @@
+\input texinfo    @c -*-texinfo-*-
+@comment %**start of header (This is for running Texinfo on a region.)
+@setfilename cl-ansi-term.info
+@settitle cl-ansi-term Library
+@set EDITION 0.1.0
+@set VERSION 0.1.0
+@set UPDATED 17 January 2015
+@set UPDATED-MONTH January 2015
+@set LASTCHANGE Sat Jan 17 17:10:51 EST 2015
+
+@comment %**end of header (This is for running Texinfo on a region.)
+@synindex vr fn
+
+@copying
+This manual describes the cl-ansi-term Library (version
+@value{VERSION}, @value{UPDATED}), a library which allows to print
+various primitives on ANSI-compliant terminals.
+
+Copyright @copyright{} 2015 Mark Karpov
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+copy of the license is included in the section entitled ``GNU Free
+Documentation License''.
+
+@end quotation
+@end copying
+
+@dircategory Libraries
+@direntry
+* cl-ansi-term: (cl-ansi-term).       cl-ansi-term library API.
+@end direntry
+
+@titlepage
+@title cl-ansi-term Library
+@subtitle Edition @value{EDITION}, for @code{cl-ansi-term Library} Version @value{VERSION}.
+@subtitle @value{UPDATED-MONTH}
+@author Mark Karpov
+
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top cl-ansi-term Library
+
+This document describes cl-ansi-term library, utility that aids to
+print various primitives on ANSI-compliant terminals. This program is
+distributed under GNU General Public License, version 3.
+
+@menu
+* Graphic Rendition:: Creating and using style-sheets.
+* Primitives:: Functions and variables to print various primitives.
+* Hooks:: How to use hooks to extend or alter behavior of cl-ansi-term.
+* GNU Free Documentation License:: License for copying this manual.
+* Concept Index:: Index of concepts described in this manual.
+* Function and Variable Index::	Index of externally visible functions
+and variables.
+@end menu
+@end ifnottex
+
+@node Graphic Rendition
+@chapter Graphic Rendition
+
+This chapter describes variables and functions that allow to control
+graphic rendition on ANSI-complaint terminals.
+
+@cindex style sheet
+
+cl-ansi-term uses concept of style sheets for graphic rendition. This
+means that the programmer doesn't need to specify all parameters every
+time he/she wants to switch to specific graphical rendition. Instead,
+the programmer is provided with the tools to define styles of output,
+and then use abstract names of the styles to specify how output should
+be rendered. This allows to reduce repetition of rendition parameters
+in code and avoid associated errors.
+
+@defvar *effects-enabled*
+If this variable is bound to non-@code{nil} value, graphic rendition
+effects (and other terminal-dependent effects) are enabled, otherwise
+they are disabled.
+@end defvar
+
+@defun update-style-sheet alist
+Update style sheet used by the application. Every item of @var{alist}
+must be a list with @code{car} denoting name of style sheet entry and
+@code{cdr} representing collection of tokens that define terminal
+rendition. Tokens can represent various things: foreground color,
+background color, and effects. Every type of token has its default
+value, so you can omit some tokens. However, if there are more than
+one token of the same type (for example @code{:red} and @code{:green}
+-- both tokens represent foreground color), result is unpredictable
+and depends on internal workings of Common Lisp implementation
+used. You cannot redefine @code{:default} style, it's always represent
+default parameters of rendition.
+@end defun
+
+@cindex foreground colors
+
+Foreground colors are (default value is @code{:default}):
+@itemize @bullet
+@item
+@code{:default}
+@item
+@code{:black}
+@item
+@code{:red}
+@item
+@code{:green}
+@item
+@code{:yellow}
+@item
+@code{:blue}
+@item
+@code{:magneta}
+@item
+@code{:cyan}
+@item
+@code{:white*}
+@item
+@code{:black*}
+@item
+@code{:red*}
+@item
+@code{:green*}
+@item
+@code{:yellow*}
+@item
+@code{:blue*}
+@item
+@code{:magneta*}
+@item
+@code{:cyan*}
+@item
+@code{:white*}
+@end itemize
+
+Colors that are denoted by keywords ending with asterisk are not in
+ANSI standard (high intensity variants of 8 basic colors).
+
+@cindex background colors
+
+Background colors are (default value is @code{:b-default}):
+@itemize @bullet
+@item
+@code{:b-default}
+@item
+@code{:b-black}
+@item
+@code{:b-red}
+@item
+@code{:b-green}
+@item
+@code{:b-yellow}
+@item
+@code{:b-blue}
+@item
+@code{:b-magneta}
+@item
+@code{:b-cyan}
+@item
+@code{:b-white*}
+@item
+@code{:b-black*}
+@item
+@code{:b-red*}
+@item
+@code{:b-green*}
+@item
+@code{:b-yellow*}
+@item
+@code{:b-blue*}
+@item
+@code{:b-magneta*}
+@item
+@code{:b-cyan*}
+@item
+@code{:b-white*}
+@end itemize
+
+Colors that are denoted by keywords ending with asterisk are not in
+ANSI standard (high intensity variants of 8 basic colors).
+
+@cindex rendition effects
+
+Rendition effects are (default value is @code{:normal}):
+@itemize @bullet
+@item
+@code{:bold} -- bold or increased intensity
+@item
+@code{:faint} -- decreased intensity (not widely supported)
+@item
+@code{:italic} -- not widely supported, sometimes treated as inverse
+@item
+@code{:underline} -- single underline
+@item
+@code{:blink} -- less than 150 per minute
+@item
+@code{:bad-blink} -- MS-DOS ANSI.SYS, 150+ per minute, not widely
+supported
+@item
+@code{:inverse} -- swap foreground and background colors, reverse
+video
+@item
+@code{:hide} -- not widely supported
+@item
+@code{:fraktur} -- hardly ever supported
+@item
+@code{:normal} -- normal color and intensity
+@item
+@code{:framed}
+@item
+@code{:encircled}
+@item
+@code{:overlined}
+@end itemize
+
+Here is an example of @code{update-style-sheet} function:
+
+@example
+(update-style-sheet
+ '((:header :cyan   :underline)
+   (:mark   :red    :reverse)
+   (:term   :yellow :bold)))
+@end example
+
+@node Primitives
+@chapter Primitives
+
+This chapter describes a variable and functions to print various
+primitives on ANSI-complaint terminals. All the functions take many
+keyword parameters so the programmer has great control over them.
+
+@defvar *terminal-width*
+Many functions use this value to output text nicely. Default value is
+@code{80}. If you want to dynamically change this value, write and
+register @code{:before-printing} hook and reassign terminal width
+before printing takes place (@pxref{Hooks}).
+@end defvar
+
+@defun cat-print objects @code{&key} base-style margin fill-column align stream
+Concatenate @var{objects} and print them. @var{objects} must be a list
+designator that consists of printable objects and lists where
+@code{car} is a printable object and @code{cadr} is a keyword that
+denotes style of the object. Unspecified styles default to
+@var{base-style}. @var{margin}, @var{fill-column}, and @var{align}
+control corresponding parameters of output. Valid values for
+@var{align} are @code{:left} (default), @code{:center}, and
+@code{:right}. Output goes to @var{stream}.
+@end defun
+
+@defun hr @code{&key} filler style width align stream
+Print a horizontal line. Characters in the line are created by
+repeating given @var{filler} until @var{width} characters
+accumulated. If @var{width} is not a positive number,
+@code{*terminal-width*} will be added to it to get positive
+@var{width}. @var{style} controls graphic rendition. @var{align}
+should be a keyword: @code{:left}, @code{:right}, or
+@code{:center}. Output goes to @var{stream}.
+@end defun
+
+@defun progress-bar label progress @code{&key} margin label-style filler bar-style num-style bar-width stream
+Print a progress bar. If @var{progress} is less than @code{100}, move
+cursor to the beginning of current line, so next invocation of
+@code{progress-bar} will rewrite it. This function doesn't print
+anything if @var{progress} is less than @code{100} and output stream
+is not interactive or @code{*effects-enabled*} is @code{nil}. Insert
+@var{margin} spaces, then @var{label} (style for the label is set with
+@var{label-style}). Size of progress bar is set by @var{bar-width}. If
+@var{bar-width} is not a positive number, @code{*terminal-width*} will
+be added to it to get positive @var{bar-width}. @var{bar-style} is the
+style that will be used for the bar itself, while @var{num-style} will
+be used for number of percents and some additional elements. Output
+goes to @var{stream}.
+@end defun
+
+@defun u-list tree @code{&key} bullet mark-suffix bullet-style item-style mark-style margin level-margin fill-column stream
+Print an unordered list according to @var{tree}. If we consider
+@var{tree} a list, every element must be either a printable object to
+print as a list item or a list where @code{car} is the list item and
+@code{cdr} is sublist of the item. @var{bullet} must be a string
+designator, it will be converted to string if needed and its
+characters will be used as bullets: zeroth character will be the
+bullet for top level of the list, first character is the bullet for
+sublist, etc. If there are more levels of nesting than characters in
+the string, it will be cycled. @var{bullet-style} is used for
+bullets. It can be also a list, in this case it's possible to specify
+different styles for different levels of nesting. @var{item-style} is
+used to render the list items. @var{mark-style} is used for items that
+end with @var{mark-suffix} (it can be any printable
+object). @var{level-margin} must be a positive integer that specifies
+how to increase margin for every level of nesting, you can also use
+plain @var{margin}. @var{fill-column} is used to split long items, if
+it's not a positive number, @code{*terminal-width*} will be added to
+it to get positive @var{fill-column}. Output goes to
+@var{stream}.
+@end defun
+
+@defun o-list tree @code{&key} index delimiter mark-suffix index-style item-style mark-style margin level-margin fill-column stream
+Print ordered list according to @var{tree}. If we consider @var{tree}
+a list, every element must be either a printable object to print as a
+list item or a list where @code{car} is list item and @code{cdr} is
+sublist of the item. @code{index} must be a list designator, its
+elements should be keywords that denote how to represent
+numeration. Acceptable values are:
+@itemize @bullet
+@item
+@code{:arabic} -- indexes will be printed as arabic numerals (default
+value)
+@item
+@code{:roman} -- indexes will be printed as roman numerals
+@item
+@code{:letter} -- indexes will be printed as letters of Latin alphabet
+@item
+@code{:capital} -- the same as @code{:letter}, but capital letters are
+used
+@end itemize
+If there are more levels of nesting than elements in the list, it will
+be cycled. The same applies to @var{delimiter}, which must be a string
+designator. @var{index-style} is used for indexes. It can be also
+list, in this case it's possible to specify different styles for
+different levels of nesting. @var{item-style} is used to render the
+list items. @var{mark-style} is used for items that end with
+@var{mark-suffix} (it can be any printable object). @var{level-margin}
+must be a positive integer that specifies how to increase margin for
+every level of nesting, you can also use plain
+@var{margin}. @var{fill-column} is used to split long items, if it's
+not a positive number, @code{*terminal-output*} will be added to it to
+get positive @var{fill-column}. Output goes to @var{stream}.
+@end defun
+
+@defun table objects @code{&key} mark-suffix border-chars border-style header-style cell-style mark-style col-header margin column-width align stream
+Print a table filling cells with @var{objects}. @var{objects} must be
+a list of list designators. If @var{border-style} is @code{nil}, no
+border will be printed, otherwise @var{border-style} is expected to be
+a keyword that denotes style in which borders of the table should be
+printed. @var{header-style} will be applied to the first row of the
+table (also to the first column if @var{col-header} is not @code{nil})
+and @var{cell-style} will be applied to all other rows. Objects that
+end with @var{mark-suffix} will be printed using
+@var{mark-style}. @var{margin}, @var{column-width}, and @var{align}
+can also be specified. Valid values of @var{align} are: @code{:left}
+(default value), @code{:center}, and @code{:right}. Output goes to
+@var{stream}.
+@end defun
+
+@node Hooks
+@chapter Hooks
+
+@cindex hooks
+
+This chapter describes functions that allow to register custom hooks
+that will be invoked on specific predefined events.
+
+@defun register-hook event function
+Register a hook. When predefined @var{event} occurs @var{function}
+will be called. You can register many functions to call on the same
+event. Acceptable values of @var{event}:
+@itemize @bullet
+@item
+@code{:before-printing} -- @var{function} is invoked just before
+printing takes place, no argument is passed to the function
+@item
+@code{:after-printing} -- @var{function} is invoked after printing, no
+argument is passed to the function
+@item
+@code{:on-style-change} -- @var{function} is invoked before style
+changing escape sequence is printed. One argument is passed to
+@var{function}, name of the style, which is a keyword
+@end itemize
+@end defun
+
+@defun remove-hook event
+Remove all registered functions that are called on
+@var{event}. Returns @code{t} if there were any functions associated
+with @code{event} and @code{nil} otherwise.
+@end defun
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+@node Concept Index
+@unnumbered Concept Index
+@printindex cp
+
+@node Function and Variable Index
+@unnumbered Function and Variable Index
+@printindex fn
+
+@bye
