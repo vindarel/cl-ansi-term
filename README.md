@@ -45,4 +45,4 @@ https://mrkkrp.github.io/cl-ansi-term
 
 Copyright (c) 2015 Mark Karpov
 
-Distributed under GNU GPL.
+Distributed under GNU GPL, version 3.

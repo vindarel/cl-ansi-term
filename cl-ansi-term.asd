@@ -5,12 +5,12 @@
 ;;;
 ;;; Copyright (c) 2015 Mark Karpov
 ;;;
-;;; This program is free software: you can redistribute it and/or modify it
+;;; cl-ansi-term is free software: you can redistribute it and/or modify it
 ;;; under the terms of the GNU General Public License as published by the
 ;;; Free Software Foundation, either version 3 of the License, or (at your
 ;;; option) any later version.
 ;;;
-;;; This program is distributed in the hope that it will be useful, but
+;;; cl-ansi-term is distributed in the hope that it will be useful, but
 ;;; WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
 ;;; Public License for more details.
@@ -22,7 +22,7 @@
   :version      "0.1.0"
   :description  "library to output formatted text on ANSI-compliant terminals"
   :author       "Mark Karpov"
-  :license      "GNU GPL v.3"
+  :license      "GNU GPL, version 3"
   :components   ((:file "cl-ansi-term"))
   :depends-on   (:alexandria
                  :anaphora))
