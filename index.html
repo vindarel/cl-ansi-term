@@ -155,6 +155,10 @@ and then use abstract names of the styles to specify how output should
 be rendered. This allows to reduce repetition of rendition parameters
 in code and avoid associated errors.
 </p>
+<p>Note that cl-ansi-term is able to detect when output goes to a file
+instead of terminal, in this case cl-ansi-term does not print escape
+sequences.
+</p>
 <dl>
 <dt><a name="index-_002aeffects_002denabled_002a"></a>Variable: <strong>*effects-enabled*</strong></dt>
 <dd><p>If this variable is bound to non-<code>nil</code> value, graphic rendition
