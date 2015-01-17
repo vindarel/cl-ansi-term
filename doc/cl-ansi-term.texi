@@ -56,6 +56,9 @@ This document describes cl-ansi-term library, utility that aids to
 print various primitives on ANSI-compliant terminals. This program is
 distributed under GNU General Public License, version 3.
 
+All symbols described in this document live in @code{cl-ansi-term}
+package, it has the following nicknames: @code{term}.
+
 @menu
 * Graphic Rendition:: Creating and using style-sheets.
 * Primitives:: Functions and variables to print various primitives.
