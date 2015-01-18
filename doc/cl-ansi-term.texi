@@ -320,14 +320,15 @@ numeration. Acceptable values are:
 @itemize @bullet
 @item
 @code{:arabic} -- indexes will be printed as arabic numerals (default
-value)
+value);
 @item
-@code{:roman} -- indexes will be printed as roman numerals
+@code{:roman} -- indexes will be printed as roman numerals;
 @item
-@code{:letter} -- indexes will be printed as letters of Latin alphabet
+@code{:letter} -- indexes will be printed as letters of Latin
+alphabet;
 @item
 @code{:capital} -- the same as @code{:letter}, but capital letters are
-used
+used.
 @end itemize
 If there are more levels of nesting than elements in the list, it will
 be cycled. The same applies to @var{delimiter}, which must be a string
@@ -373,14 +374,14 @@ event. Acceptable values of @var{event}:
 @itemize @bullet
 @item
 @code{:before-printing} -- @var{function} is invoked just before
-printing takes place, no argument is passed to the function
+printing takes place, no argument is passed to the function.
 @item
 @code{:after-printing} -- @var{function} is invoked after printing, no
-argument is passed to the function
+argument is passed to the function.
 @item
 @code{:on-style-change} -- @var{function} is invoked before style
 changing escape sequence is printed. One argument is passed to
-@var{function}, name of the style, which is a keyword
+@var{function}, name of the style, which is a keyword.
 @end itemize
 @end defun
 
