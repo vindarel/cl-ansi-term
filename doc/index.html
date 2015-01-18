@@ -15,7 +15,7 @@ Documentation License".
 
 
  -->
-<!-- Created on January 17, 2015 by texi2html 5.0
+<!-- Created on January 18, 2015 by texi2html 5.0
 texi2html was written by: 
             Lionel Cons <Lionel.Cons@cern.ch> (original author)
             Karl Berry  <karl@freefriends.org>
@@ -154,6 +154,10 @@ the programmer is provided with the tools to define styles of output,
 and then use abstract names of the styles to specify how output should
 be rendered. This allows to reduce repetition of rendition parameters
 in code and avoid associated errors.
+</p>
+<p>Note that cl-ansi-term is able to detect when output goes to a file
+instead of terminal, in this case cl-ansi-term does not print escape
+sequences.
 </p>
 <dl>
 <dt><a name="index-_002aeffects_002denabled_002a"></a>Variable: <strong>*effects-enabled*</strong></dt>
@@ -355,7 +359,7 @@ control corresponding parameters of output. Valid values for
 <dd><p>Print a horizontal line. Characters in the line are created by
 repeating given <var>filler</var> until <var>width</var> characters
 accumulated. If <var>width</var> is not a positive number,
-<code>*terminal-width*</code> will be added to it to get positive
+<var>*terminal-width*</var> will be added to it to get positive
 <var>width</var>. <var>style</var> controls graphic rendition. <var>align</var>
 should be a keyword: <code>:left</code>, <code>:right</code>, or
 <code>:center</code>. Output goes to <var>stream</var>.
@@ -367,10 +371,10 @@ should be a keyword: <code>:left</code>, <code>:right</code>, or
 cursor to the beginning of current line, so next invocation of
 <code>progress-bar</code> will rewrite it. This function doesn&rsquo;t print
 anything if <var>progress</var> is less than <code>100</code> and output stream
-is not interactive or <code>*effects-enabled*</code> is <code>nil</code>. Insert
+is not interactive or <var>*effects-enabled*</var> is <code>nil</code>. Insert
 <var>margin</var> spaces, then <var>label</var> (style for the label is set with
 <var>label-style</var>). Size of progress bar is set by <var>bar-width</var>. If
-<var>bar-width</var> is not a positive number, <code>*terminal-width*</code> will
+<var>bar-width</var> is not a positive number, <var>*terminal-width*</var> will
 be added to it to get positive <var>bar-width</var>. <var>bar-style</var> is the
 style that will be used for the bar itself, while <var>num-style</var> will
 be used for number of percents and some additional elements. Output
@@ -395,9 +399,8 @@ end with <var>mark-suffix</var> (it can be any printable
 object). <var>level-margin</var> must be a positive integer that specifies
 how to increase margin for every level of nesting, you can also use
 plain <var>margin</var>. <var>fill-column</var> is used to split long items, if
-it&rsquo;s not a positive number, <code>*terminal-width*</code> will be added to
-it to get positive <var>fill-column</var>. Output goes to
-<var>stream</var>.
+it&rsquo;s not a positive number, <var>*terminal-width*</var> will be added to it
+to get positive <var>fill-column</var>. Output goes to <var>stream</var>.
 </p></dd></dl>
 
 <dl>
@@ -430,7 +433,7 @@ list items. <var>mark-style</var> is used for items that end with
 must be a positive integer that specifies how to increase margin for
 every level of nesting, you can also use plain
 <var>margin</var>. <var>fill-column</var> is used to split long items, if it&rsquo;s
-not a positive number, <code>*terminal-output*</code> will be added to it to
+not a positive number, <var>*terminal-output*</var> will be added to it to
 get positive <var>fill-column</var>. Output goes to <var>stream</var>.
 </p></dd></dl>
 
@@ -498,7 +501,7 @@ changing escape sequence is printed. One argument is passed to
 <dt><a name="index-remove_002dhook"></a>Function: <strong>remove-hook</strong><em> event</em></dt>
 <dd><p>Remove all registered functions that are called on
 <var>event</var>. Returns <code>t</code> if there were any functions associated
-with <code>event</code> and <code>nil</code> otherwise.
+with <var>event</var> and <code>nil</code> otherwise.
 </p></dd></dl>
 
 <hr>
@@ -1199,7 +1202,7 @@ to permit their use in free software.
 <h1>About This Document</h1>
 
 <p>
-  This document was generated on <i>January 17, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
+  This document was generated on <i>January 18, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
 </p>
 <p>
   The buttons in the navigation panels have the following meaning:
@@ -1301,7 +1304,7 @@ to permit their use in free software.
 <hr>
 <p>
  <font size="-1">
-  This document was generated on <i>January 17, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
+  This document was generated on <i>January 18, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
  </font>
  <br>
 
