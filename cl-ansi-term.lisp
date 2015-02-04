@@ -62,6 +62,10 @@ depend entirely on EVENT on which every function is called.")
   "This hash table contains strings for various styles of terminal output,
 defined with UPDATE-STYLE-SHEET.")
 
+(defvar *style* :default
+  "This variable is bound to currently set style. Styles are set with
+SET-STYLE function.")
+
 (defparameter *coloration* nil
   "Alist where CARs are indexes at which to insert ANSI escape sequences to
 change graphical rendition and CDRs are keywords that denote style of the
@@ -222,7 +226,8 @@ redirected to a file)."
   (awhen (and (effects-p stream)
               (gethash style *style-sheet*))
     (perform-hook :on-style-change style)
-    (princ it stream)))
+    (princ it stream)
+    (setf *style* style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
@@ -339,6 +344,7 @@ be aligned with ALIGN parameter. Output goes to STREAM."
                         align
                         stream)
           (print-partially text start break-pos stream)
+          (push (cons new-start *style*) *coloration*)
           (set-style :default stream)
           (terpri stream)
           (setf start new-start))))))
