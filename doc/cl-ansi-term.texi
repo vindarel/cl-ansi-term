@@ -2,11 +2,11 @@
 @comment %**start of header (This is for running Texinfo on a region.)
 @setfilename cl-ansi-term.info
 @settitle cl-ansi-term Library
-@set EDITION 0.1.0
-@set VERSION 0.1.0
-@set UPDATED 17 January 2015
-@set UPDATED-MONTH January 2015
-@set LASTCHANGE Sat Jan 17 17:10:51 EST 2015
+@set EDITION 0.1.1
+@set VERSION 0.1.1
+@set UPDATED 5 February 2015
+@set UPDATED-MONTH February 2015
+@set LASTCHANGE Thu Feb 5 20:03:01 EST 2015
 
 @comment %**end of header (This is for running Texinfo on a region.)
 @synindex vr fn
@@ -264,6 +264,20 @@ control corresponding parameters of output. Valid values for
 @code{:right}. Output goes to @var{stream}.
 @end defun
 
+@defun print control-string @code{&key} args base-style margin fill-column align stream
+Insert arguments from @var{args} (list designator) into
+@var{control-string} substituting tildes @code{~}. Any region of text
+in @var{control-string} can be printed in specified style following
+this pattern:
+@code{[}@var{text}@code{](}@var{name-of-style}@code{)}. Where
+@var{name-of-style} is downcased name of symbol (keyword) in style
+sheet. Style of the rest of the output defaults to
+@var{base-style}. @var{margin}, @var{fill-column}, and @var{align}
+control corresponding parameters of output. Valid values for
+@var{align} are @code{:left} (default), @code{:center}, and
+@code{:right}. Output goes to @var{stream}.
+@end defun
+
 @defun hr @code{&key} filler style width align stream
 Print a horizontal line. Characters in the line are created by
 repeating given @var{filler} until @var{width} characters
@@ -346,14 +360,17 @@ get positive @var{fill-column}. Output goes to @var{stream}.
 
 @defun table objects @code{&key} mark-suffix border-chars border-style header-style cell-style mark-style col-header margin column-width align stream
 Print a table filling cells with @var{objects}. @var{objects} must be
-a list of list designators. If @var{border-style} is @code{nil}, no
-border will be printed, otherwise @var{border-style} is expected to be
-a keyword that denotes style in which borders of the table should be
-printed. @var{header-style} will be applied to the first row of the
-table (also to the first column if @var{col-header} is not @code{nil})
-and @var{cell-style} will be applied to all other rows. Objects that
-end with @var{mark-suffix} will be printed using
-@var{mark-style}. @var{margin}, @var{column-width}, and @var{align}
+a list of list designators with equal lengths. If @var{border-style}
+is @code{nil}, no border will be printed, otherwise @var{border-style}
+is expected to be a keyword that denotes style in which borders of the
+table should be printed. @var{header-style} will be applied to the
+first row of the table (also to the first column if @var{col-header}
+is not @code{nil}) and @var{cell-style} will be applied to all other
+rows. If @var{cell-style} is a list, its elements will be used to
+differently render every column. Objects that end with
+@var{mark-suffix} will be printed using
+@var{mark-style}. @var{margin}, @var{column-width} (list designator,
+may be used to set different width for every column), and @var{align}
 can also be specified. Valid values of @var{align} are: @code{:left}
 (default value), @code{:center}, and @code{:right}. Output goes to
 @var{stream}.

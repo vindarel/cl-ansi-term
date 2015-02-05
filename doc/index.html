@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <!-- This manual describes the cl-ansi-term Library (version
-0.1.0, 17 January 2015), a library which allows to print
+0.1.1, 5 February 2015), a library which allows to print
 various primitives on ANSI-compliant terminals.
 
 Copyright (C) 2015 Mark Karpov
@@ -15,7 +15,7 @@ Documentation License".
 
 
  -->
-<!-- Created on January 18, 2015 by texi2html 5.0
+<!-- Created on February 5, 2015 by texi2html 5.0
 texi2html was written by: 
             Lionel Cons <Lionel.Cons@cern.ch> (original author)
             Karl Berry  <karl@freefriends.org>
@@ -65,13 +65,13 @@ ul.no-bullet {list-style: none}
 <body lang="en" bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#800080" alink="#FF0000">
 
 <h1>cl-ansi-term Library</h1>
-<h3 align="right">Edition 0.1.0, for <code>cl-ansi-term Library</code> Version 0.1.0.</h3>
-<h3 align="right">January 2015</h3>
+<h3 align="right">Edition 0.1.1, for <code>cl-ansi-term Library</code> Version 0.1.1.</h3>
+<h3 align="right">February 2015</h3>
 <strong>Mark Karpov</strong><br>
 
 
 <p>This manual describes the cl-ansi-term Library (version
-0.1.0, 17 January 2015), a library which allows to print
+0.1.1, 5 February 2015), a library which allows to print
 various primitives on ANSI-compliant terminals.
 </p>
 <p>Copyright &copy; 2015 Mark Karpov
@@ -355,6 +355,21 @@ control corresponding parameters of output. Valid values for
 </p></dd></dl>
 
 <dl>
+<dt><a name="index-print"></a>Function: <strong>print</strong><em> control-string <code>&amp;key</code> args base-style margin fill-column align stream</em></dt>
+<dd><p>Insert arguments from <var>args</var> (list designator) into
+<var>control-string</var> substituting tildes <code>~</code>. Any region of text
+in <var>control-string</var> can be printed in specified style following
+this pattern:
+<code>[</code><var>text</var><code>](</code><var>name-of-style</var><code>)</code>. Where
+<var>name-of-style</var> is downcased name of symbol (keyword) in style
+sheet. Style of the rest of the output defaults to
+<var>base-style</var>. <var>margin</var>, <var>fill-column</var>, and <var>align</var>
+control corresponding parameters of output. Valid values for
+<var>align</var> are <code>:left</code> (default), <code>:center</code>, and
+<code>:right</code>. Output goes to <var>stream</var>.
+</p></dd></dl>
+
+<dl>
 <dt><a name="index-hr"></a>Function: <strong>hr</strong><em> <code>&amp;key</code> filler style width align stream</em></dt>
 <dd><p>Print a horizontal line. Characters in the line are created by
 repeating given <var>filler</var> until <var>width</var> characters
@@ -441,14 +456,17 @@ get positive <var>fill-column</var>. Output goes to <var>stream</var>.
 <dl>
 <dt><a name="index-table"></a>Function: <strong>table</strong><em> objects <code>&amp;key</code> mark-suffix border-chars border-style header-style cell-style mark-style col-header margin column-width align stream</em></dt>
 <dd><p>Print a table filling cells with <var>objects</var>. <var>objects</var> must be
-a list of list designators. If <var>border-style</var> is <code>nil</code>, no
-border will be printed, otherwise <var>border-style</var> is expected to be
-a keyword that denotes style in which borders of the table should be
-printed. <var>header-style</var> will be applied to the first row of the
-table (also to the first column if <var>col-header</var> is not <code>nil</code>)
-and <var>cell-style</var> will be applied to all other rows. Objects that
-end with <var>mark-suffix</var> will be printed using
-<var>mark-style</var>. <var>margin</var>, <var>column-width</var>, and <var>align</var>
+a list of list designators with equal lengths. If <var>border-style</var>
+is <code>nil</code>, no border will be printed, otherwise <var>border-style</var>
+is expected to be a keyword that denotes style in which borders of the
+table should be printed. <var>header-style</var> will be applied to the
+first row of the table (also to the first column if <var>col-header</var>
+is not <code>nil</code>) and <var>cell-style</var> will be applied to all other
+rows. If <var>cell-style</var> is a list, its elements will be used to
+differently render every column. Objects that end with
+<var>mark-suffix</var> will be printed using
+<var>mark-style</var>. <var>margin</var>, <var>column-width</var> (list designator,
+may be used to set different width for every column), and <var>align</var>
 can also be specified. Valid values of <var>align</var> are: <code>:left</code>
 (default value), <code>:center</code>, and <code>:right</code>. Output goes to
 <var>stream</var>.
@@ -1138,6 +1156,7 @@ to permit their use in free software.
 <tr><td></td><td valign="top"><a href="#index-o_002dlist"><code>o-list</code></a></td><td>&nbsp;</td><td valign="top"><a href="#Primitives">2 Primitives</a></td></tr>
 <tr><td colspan="4"> <hr></td></tr>
 <tr><th><a name="Function-and-Variable-Index-1_fn_letter-P">P</a></th><td></td><td></td></tr>
+<tr><td></td><td valign="top"><a href="#index-print"><code>print</code></a></td><td>&nbsp;</td><td valign="top"><a href="#Primitives">2 Primitives</a></td></tr>
 <tr><td></td><td valign="top"><a href="#index-progress_002dbar"><code>progress-bar</code></a></td><td>&nbsp;</td><td valign="top"><a href="#Primitives">2 Primitives</a></td></tr>
 <tr><td colspan="4"> <hr></td></tr>
 <tr><th><a name="Function-and-Variable-Index-1_fn_letter-R">R</a></th><td></td><td></td></tr>
@@ -1203,7 +1222,7 @@ to permit their use in free software.
 <h1>About This Document</h1>
 
 <p>
-  This document was generated on <i>January 18, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
+  This document was generated on <i>February 5, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
 </p>
 <p>
   The buttons in the navigation panels have the following meaning:
@@ -1305,7 +1324,7 @@ to permit their use in free software.
 <hr>
 <p>
  <font size="-1">
-  This document was generated on <i>January 18, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
+  This document was generated on <i>February 5, 2015</i> using <a href="http://www.nongnu.org/texi2html/"><i>texi2html 5.0</i></a>.
  </font>
  <br>
 
