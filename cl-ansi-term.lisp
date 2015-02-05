@@ -28,11 +28,13 @@
               #:remove-hook
               #:update-style-sheet
               #:cat-print
+              #:print
               #:hr
               #:progress-bar
               #:u-list
               #:o-list
-              #:table))
+              #:table)
+  (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
 
@@ -374,6 +376,77 @@ and :RIGHT. Output goes to STREAM."
   (perform-hook :after-printing)
   (values))
 
+(defun parse-control-string (string args)
+  "Parse control string STRING according to the format described in
+documentation for PRINT function. Return a list, suitable for passing to
+CAT-PRINT."
+  (labels ((positions (char str &optional (start 0) acc)
+             (aif (position char str :start start :test #'char=)
+                  (positions char str (1+ it) (cons it acc))
+                  (nreverse acc)))
+           (malformed (item)
+             (destructuring-bind (start . end) item
+               (> start end)))
+           (form-pairs (open close str)
+             (remove-if #'malformed
+                        (mapcar #'cons
+                                (positions open str)
+                                (positions close str))))
+           (prepare (str start end)
+             (aif (position #\~ str :start start :end end :test #'char=)
+                  (concatenate 'string
+                               (subseq str start it)
+                               (format nil "~a" (pop args))
+                               (subseq str (1+ it) end))
+                  (subseq str start end))))
+    (let ((brackets (form-pairs #\[ #\] string))
+          (parens   (form-pairs #\( #\) string))
+          (i        0)
+          result)
+      (dolist (item (mapcan (lambda (b)
+                              (destructuring-bind (bs . be) b
+                                (awhen (find-if (lambda (x)
+                                                  (= (car x) (1+ be)))
+                                                parens)
+                                       (destructuring-bind (ps . pe) it
+                                         (list (list (cons (1+ bs) be)
+                                                     (cons (1+ ps) pe)))))))
+                            brackets))
+        (destructuring-bind ((bs . be) (ps . pe)) item
+          (when (< i (1- bs))
+            (push (prepare string i (1- bs)) result))
+          (push (list (prepare string bs be)
+                      (intern (string-upcase (subseq string ps pe))
+                              "KEYWORD"))
+                result)
+          (setf i (1+ pe))))
+      (when (< i (length string))
+        (push (prepare string i (length string)) result))
+      (nreverse result))))
+
+(defun print (control-string
+              &key
+                args
+                (base-style  :default)
+                (margin      0)
+                (fill-column 0)
+                (align       :left)
+                (stream      *standard-output*))
+  "Insert arguments from ARGS (list designator) into CONTROL-STRING
+substituting tildes. Any region of text in CONTROL-STRING can be printed in
+specified style following this pattern: [text](NAME-OF-STYLE). Where
+NAME-OF-STYLE is downcased name of symbol (keyword) in style sheet. Style of
+the rest of the output defaults to BASE-STYLE. MARGIN, FILL-COLUMN, and
+ALIGN control corresponding parameters of output. Valid values for ALIGN
+are :LEFT (default), :CENTER, and :RIGHT. Output goes to STREAM."
+  (cat-print (parse-control-string control-string
+                                   (ensure-list args))
+             :base-style  base-style
+             :margin      margin
+             :fill-column fill-column
+             :align       align
+             :stream      stream))
+
 (defun hr (&key
              (filler #\-)
              (style  :default)
@@ -619,19 +692,25 @@ FILL-COLUMN. Output goes to STREAM."
                 (align        :left)
                 (stream       *standard-output*))
   "Print a table filling cells with OBJECTS. OBJECTS must be a list of list
-designators. If BORDER-STYLE is NIL, no border will be printed, otherwise
-BORDER-STYLE is expected to be a keyword that denotes style in which borders
-of the table should be printed. HEADER-STYLE will be applied to the first
-row of the table (also to the first column if COL-HEADER is not NIL) and
-CELL-STYLE will be applied to all other rows. Objects that end with
-MARK-SUFFIX will be printed using MARK-STYLE. MARGIN, COLUMN-WIDTH, and
-ALIGN can also be specified. Valid values of ALIGN are: :LEFT (default
-value), :CENTER, and :RIGHT. Output goes to STREAM."
-  (check-type column-width (integer 4))
+designators with equal lengths. If BORDER-STYLE is NIL, no border will be
+printed, otherwise BORDER-STYLE is expected to be a keyword that denotes
+style in which borders of the table should be printed. HEADER-STYLE will be
+applied to the first row of the table (also to the first column if
+COL-HEADER is not NIL) and CELL-STYLE will be applied to all other rows. If
+CELL-STYLE is a list, its elements will be used to differently render every
+column. Objects that end with MARK-SUFFIX will be printed using
+MARK-STYLE. MARGIN, COLUMN-WIDTH (list desginator, may be used to set
+different width for every column), and ALIGN can also be specified. Valid
+values of ALIGN are: :LEFT (default value), :CENTER, and :RIGHT. Output goes
+to STREAM."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (columns (length (extremum objects #'> :key #'length)))
-         (width (1+ (* columns column-width)))
+         (cell-style (apply #'circular-list
+                            (ensure-cons cell-style)))
+         (column-width (apply #'circular-list
+                              (ensure-cons column-width)))
+         (width (1+ (reduce #'+ (subseq column-width 0 columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))
          (row-index 0))
@@ -642,10 +721,12 @@ value), :CENTER, and :RIGHT. Output goes to STREAM."
                (when border-style
                  (align)
                  (set-style border-style stream)
-                 (dotimes (i width)
-                   (princ (char border-chars
-                                (if (zerop (mod i column-width)) 2 0))
-                          stream))
+                 (dolist (i (subseq column-width 0 columns))
+                   (check-type i (integer 1))
+                   (princ (char border-chars 2) stream)
+                   (dotimes (j (1- i))
+                     (princ (char border-chars 0) stream)))
+                 (princ (char border-chars 2) stream)
                  (set-style :default stream)
                  (terpri stream)))
              (v-border ()
@@ -663,16 +744,15 @@ value), :CENTER, and :RIGHT. Output goes to STREAM."
                       (cond ((ends-with-subseq mark-suffix cell) mark-style)
                             ((zerop index) header-style)
                             ((and col-header (zerop i)) header-style)
-                            (t cell-style))
+                            (t (pop cell-style)))
                       stream)
                      (princ cell stream)
                      (set-style :default stream)
-                     (print-white-space (- column-width
+                     (print-white-space (- (pop column-width)
                                            (length cell)
                                            (if border-style 1 0))
                                         stream)
                      (incf i)))
-                 (print-white-space (* (- columns i) column-width) stream)
                  (v-border)
                  (terpri))))
       (dolist (row objects)
