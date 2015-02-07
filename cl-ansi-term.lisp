@@ -211,7 +211,7 @@ rendition."
           (setf (gethash style *style-sheet*) (ansi-escape-seq tokens))
           (remhash style *style-sheet*))))
   (setf (gethash :default *style-sheet*) (ansi-escape-seq))
-  (values))
+  nil)
 
 (declaim (inline effects-p))
 
@@ -242,6 +242,9 @@ redirected to a file)."
 character is reached. Output will be colorized if *COLORATION* is bound to
 alist that describes how to colorize the output, see *COLORATION*. All
 output goes to STREAM."
+  (when *coloration*
+    (do () ((<= start (caar *coloration*)))
+      (pop *coloration*)))
   (do ((i start (1+ i)))
       ((= i end))
     (when (and *coloration*
@@ -308,13 +311,15 @@ be aligned with ALIGN parameter. Output goes to STREAM."
                             :element-type 'character
                             :fill-pointer 0
                             :adjustable t))
-          (*coloration* nil)
+          *coloration*
           (len 0))
       (with-output-to-string (stream text)
         (flet ((proc-object (obj style)
-                 (push (cons len style) *coloration*)
-                 (incf len (length (string* obj)))
-                 (princ obj stream)))
+                 (let ((obj (string* obj)))
+                   (unless (emptyp obj)
+                     (push (cons len style) *coloration*)
+                     (incf len (length (string* obj)))
+                     (princ obj stream)))))
           (dolist (object (ensure-list objects))
             (if (consp object)
                 (destructuring-bind (printable style)
@@ -346,7 +351,9 @@ be aligned with ALIGN parameter. Output goes to STREAM."
                         align
                         stream)
           (print-partially text start break-pos stream)
-          (push (cons new-start *style*) *coloration*)
+          (when (or (null *coloration*)
+                    (< new-start (caar *coloration*)))
+            (push (cons new-start *style*) *coloration*))
           (set-style :default stream)
           (terpri stream)
           (setf start new-start))))))
@@ -374,7 +381,7 @@ and :RIGHT. Output goes to STREAM."
                :stream stream)
   (finish-output stream)
   (perform-hook :after-printing)
-  (values))
+  nil)
 
 (defun parse-control-string (string args)
   "Parse control string STRING according to the format described in
@@ -384,14 +391,22 @@ CAT-PRINT."
              (aif (position char str :start start :test #'char=)
                   (positions char str (1+ it) (cons it acc))
                   (nreverse acc)))
-           (malformed (item)
-             (destructuring-bind (start . end) item
-               (> start end)))
+           (worker (opened closed &optional pending acc)
+             (cond ((null closed) (nreverse acc))
+                   ((and opened (< (car opened) (car closed)))
+                    (worker (cdr opened)
+                            closed
+                            (cons (car opened) pending)
+                            acc))
+                   (t (worker opened
+                              (cdr closed)
+                              (cdr pending)
+                              (cons (cons (car pending)
+                                          (car closed))
+                                    acc)))))
            (form-pairs (open close str)
-             (remove-if #'malformed
-                        (mapcar #'cons
-                                (positions open str)
-                                (positions close str))))
+             (worker (positions open  str)
+                     (positions close str)))
            (prepare (str start end)
              (aif (position #\~ str :start start :end end :test #'char=)
                   (concatenate 'string
@@ -400,17 +415,17 @@ CAT-PRINT."
                                (subseq str (1+ it) end))
                   (subseq str start end))))
     (let ((brackets (form-pairs #\[ #\] string))
-          (parens   (form-pairs #\( #\) string))
-          (i        0)
+          (parens (form-pairs #\( #\) string))
+          (i 0)
           result)
       (dolist (item (mapcan (lambda (b)
                               (destructuring-bind (bs . be) b
                                 (awhen (find-if (lambda (x)
                                                   (= (car x) (1+ be)))
                                                 parens)
-                                       (destructuring-bind (ps . pe) it
-                                         (list (list (cons (1+ bs) be)
-                                                     (cons (1+ ps) pe)))))))
+                                  (destructuring-bind (ps . pe) it
+                                    (list (list (cons (1+ bs) be)
+                                                (cons (1+ ps) pe)))))))
                             brackets))
         (destructuring-bind ((bs . be) (ps . pe)) item
           (when (< i (1- bs))
@@ -465,7 +480,7 @@ or :CENTER. Output goes to STREAM."
   (terpri stream)
   (finish-output stream)
   (perform-hook :after-printing)
-  (values))
+  nil)
 
 (defun progress-bar (label progress
                      &key
@@ -525,7 +540,7 @@ for number of percents and some additional elements. Output goes to STREAM."
         (terpri stream))
     (finish-output stream)
     (perform-hook :after-printing))
-  (values))
+  nil)
 
 (defun u-list (tree
                &key
@@ -586,7 +601,7 @@ FILL-COLUMN. Output goes to STREAM."
         (print-item 0 item bullet bullet-style))
       (finish-output stream)
       (perform-hook :after-printing)
-      (values))))
+      nil)))
 
 (defun o-list (tree
                &key
@@ -676,7 +691,7 @@ FILL-COLUMN. Output goes to STREAM."
         (print-item 0 i (car items) index index-style delimiter))
       (finish-output stream)
       (perform-hook :after-printing)
-      (values))))
+      nil)))
 
 (defun table (objects
               &key
@@ -762,4 +777,4 @@ to STREAM."
       (h-border)))
   (finish-output stream)
   (perform-hook :after-printing stream)
-  (values))
+  nil)
