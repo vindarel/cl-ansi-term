@@ -79,15 +79,15 @@ graphic rendition on ANSI-complaint terminals.
 @cindex style sheet
 
 cl-ansi-term uses concept of style sheets for graphic rendition. This
-means that the programmer doesn't need to specify all parameters every
-time he/she wants to switch to specific graphical rendition. Instead,
-the programmer is provided with the tools to define styles of output,
-and then use abstract names of the styles to specify how output should
-be rendered. This allows to reduce repetition of rendition parameters
-in code and avoid associated errors.
+means that the programmer doesn't need to specify all rendition
+parameters every time he/she wants to use specific graphical
+effects. Instead, the programmer is provided with the tools to define
+styles of output, and then use abstract names of the styles to specify
+how output should be rendered. This allows to reduce repetition of
+rendition parameters in code and avoid associated errors.
 
 Note that cl-ansi-term is able to detect when output goes to a file
-instead of terminal, in this case cl-ansi-term does not print escape
+instead of a terminal, in this case cl-ansi-term does not print escape
 sequences.
 
 @defvar *effects-enabled*
