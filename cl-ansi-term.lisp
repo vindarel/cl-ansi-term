@@ -242,9 +242,9 @@ redirected to a file)."
 character is reached. Output will be colorized if *COLORATION* is bound to
 alist that describes how to colorize the output, see *COLORATION*. All
 output goes to STREAM."
-  (when *coloration*
-    (do () ((<= start (caar *coloration*)))
-      (pop *coloration*)))
+  (do () ((or (null *coloration*)
+              (<= start (caar *coloration*))))
+    (set-style (cdr (pop *coloration*)) stream))
   (do ((i start (1+ i)))
       ((= i end))
     (when (and *coloration*
