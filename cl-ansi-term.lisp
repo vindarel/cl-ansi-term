@@ -242,9 +242,6 @@ redirected to a file)."
 character is reached. Output will be colorized if *COLORATION* is bound to
 alist that describes how to colorize the output, see *COLORATION*. All
 output goes to STREAM."
-  (do () ((or (null *coloration*)
-              (<= start (caar *coloration*))))
-    (set-style (cdr (pop *coloration*)) stream))
   (do ((i start (1+ i)))
       ((= i end))
     (when (and *coloration*
@@ -351,6 +348,9 @@ be aligned with ALIGN parameter. Output goes to STREAM."
                         align
                         stream)
           (print-partially text start break-pos stream)
+          (do () ((or (null *coloration*)
+                      (<= new-start (caar *coloration*))))
+            (set-style (cdr (pop *coloration*)) stream))
           (when (or (null *coloration*)
                     (< new-start (caar *coloration*)))
             (push (cons new-start *style*) *coloration*))
