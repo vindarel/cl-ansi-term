@@ -2,11 +2,11 @@
 @comment %**start of header (This is for running Texinfo on a region.)
 @setfilename cl-ansi-term.info
 @settitle cl-ansi-term Library
-@set EDITION 0.1.1
-@set VERSION 0.1.1
-@set UPDATED 5 February 2015
-@set UPDATED-MONTH February 2015
-@set LASTCHANGE Thu Feb 5 20:03:01 EST 2015
+@set EDITION 0.1.2
+@set VERSION 0.1.2
+@set UPDATED 7 July 2015
+@set UPDATED-MONTH July 2015
+@set LASTCHANGE Tue Jul 7 18:42:00 EST 2015
 
 @comment %**end of header (This is for running Texinfo on a region.)
 @synindex vr fn
