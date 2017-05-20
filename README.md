@@ -6,9 +6,9 @@
 `cl-ansi-term` allows to print various primitives on ANSI-complaint
 terminals. It also supports coloration and effects. `cl-ansi-term` is not
 something like `ncurses`, because it works with primitives that you can
-output on your terminal, as well as redirect to a file without any loss. In
-other words it's more about good ol' textual interface than *emulation of
-GUI* in terminal. An example of user interface created with `cl-ansi-term`
+output in your terminal, as well as redirect to a file. In other words, it's
+more about good ol' textual interface than *emulation of GUI* in terminal.
+An example of user interface created with `cl-ansi-term`
 is [here](https://github.com/mrkkrp/shtookovina).
 
 `cl-ansi-term` can print the following things:
@@ -20,13 +20,13 @@ is [here](https://github.com/mrkkrp/shtookovina).
 * ordered lists
 * tables
 
-`cl-ansi-term` uses concept of style sheet to manage coloration of
+`cl-ansi-term` uses the concept of style sheet to manage coloration of
 output. Define styles, give them names, specify foreground colors,
 background colors, and effects for every style.
 
-The library is able to detect whether output goes to a terminal or to a
-file. If the latter case takes place, no escape sequences will get into the
-file. It's also possible to disable all effects and coloration.
+The library is capable of detecting whether output goes to a terminal or a
+file. If the latter case takes place, no escape sequences will be outputted.
+It's also possible to disable all effects and coloration.
 
 ## Installation
 
@@ -41,7 +41,7 @@ Via Quicklisp (recommended):
 
 ## Documentation
 
-See contents of directory `doc`. Documentation is also available online:
+See contents of the directory `doc`. Documentation is also available online:
 
 https://mrkkrp.github.io/cl-ansi-term
 

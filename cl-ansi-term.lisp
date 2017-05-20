@@ -50,13 +50,13 @@ effects (and other terminal-dependent effects) are enabled, otherwise they
 are disabled.")
 
 (defparameter *terminal-width* 80
-  "Many functions use this value to output text nicely. Default value is
-80. If you want to dynamically change this value, write and register
+  "Many functions use this value to output text nicely. The default value is 80.
+If you want to dynamically change this variable, write and register
 :BEFORE-PRINTING hook and reassign terminal width before printing takes
 place.")
 
 (defparameter *hooks* (make-hash-table)
-  "This variable is bound to hash table that provides access to lists of
+  "This variable is bound to a hash table that provides access to lists of
 functions by given key. We use keywords as keys. Arguments for the functions
 depend entirely on EVENT on which every function is called.")
 
@@ -91,9 +91,9 @@ rendition. This special variable can be used to affect `print-partially'.")
     (:magneta* . 95)
     (:cyan*    . 96)
     (:white*   . 97))
-  "These are basic foreground terminal colors. Colors that are denoted by
-keywords ending with asterisk are not in ANSI standard (high intensity
-variants of 8 basic colors).")
+  "These are the basic foreground terminal colors. Colors that are denoted
+by keywords ending with an asterisk are not in the ANSI standard (high
+intensity variants of 8 basic colors).")
 
 (defparameter +background-colors+
   '((:b-default  . 49)
@@ -113,8 +113,8 @@ variants of 8 basic colors).")
     (:b-magneta* . 105)
     (:b-cyan*    . 106)
     (:b-white*   . 107))
-  "These are basic background terminal colors. Colors that are denoted by
-keywords ending with asterisk are not in ANSI standard (high intensity
+  "These are the basic background terminal colors. Colors that are denoted
+by keywords ending with an asterisk are not in ANSI standard (high intensity
 variants of 8 basic colors).")
 
 (defparameter +effects+
@@ -131,8 +131,8 @@ variants of 8 basic colors).")
     (:framed    . 51)
     (:encircled . 52)
     (:overlined . 53))
-  "All supported rendition effects. Some of them are hardly ever
-supported by real-world terminals.")
+  "All supported rendition effects. Some of them are hardly ever supported
+by real-world terminals.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
@@ -141,16 +141,16 @@ supported by real-world terminals.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun register-hook (event function)
-  "Register a hook. When predefined EVENT occurs FUNCTION will be
-called. You can register many functions to call on the same event.
+  "Register a hook. When predefined EVENT occurs FUNCTION will be called.
+You can register many functions to call on the same event.
 
 Acceptable values of EVENT:
 
-:BEFORE-PRINTING - FUNCTION is invoked just before printing takes place, no
+:BEFORE-PRINTING—FUNCTION is invoked just before printing takes place, no
 argument is passed to the function
-:AFTER-PRINTING - FUNCTION is invoked after printing, no argument is passed
-to the function
-:ON-STYLE-CHANGE - FUNCTION is invoked before style changing escape sequence
+:AFTER-PRINTING—FUNCTION is invoked after printing, no argument is passed to
+the function
+:ON-STYLE-CHANGE—FUNCTION is invoked before style changing escape sequence
 in printed. One argument is passed to FUNCTION, name of the style, which is
 a keyword."
   (push function (gethash event *hooks*))
@@ -176,10 +176,10 @@ one function associated with EVENT and NIL otherwise."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun ansi-escape-seq (&optional tokens)
-  "Convert list of rendition tokens into ANSI escape sequence that will
-select appropriate parameters of rendition if «printed» on ANSI-compatible
-terminal. If TOKENS is empty, escape sequence that resets all rendition
-parameters will be returned."
+  "Convert list of rendition tokens into an ANSI escape sequence that will
+select appropriate parameters of rendition if “printed” on an
+ANSI-compatible terminal. If TOKENS is empty, escape sequence that resets
+all rendition parameters will be returned."
   (if (null tokens)
       (format nil "~c[0m" #\escape)
       (flet ((select-token (options default)
@@ -200,10 +200,10 @@ list with CAR denoting name of style sheet entry and CDR representing
 collection of tokens that define terminal rendition. Tokens can represent
 various things: foreground color, background color, and effects. Every type
 of token has its default value, so you can omit some tokens. However, if
-there are more than one token of the same type (for example :RED and :GREEN
-— both tokens represent foreground color), result is unpredictable and
-depends on internal workings of Common Lisp implementation used. You cannot
-redefine :DEFAULT style, it's always represent default parameters of
+there are more than one token of the same type (for example :RED
+and :GREEN—both tokens represent foreground color), result is unpredictable
+and depends on internal workings of Common Lisp implementation used. You
+cannot redefine :DEFAULT style, it always represents default parameters of
 rendition."
   (dolist (entry alist)
     (destructuring-bind (style . tokens) entry
@@ -496,12 +496,12 @@ or :CENTER. Output goes to STREAM."
 beginning of current line, so next invocation of `progress-bar' will rewrite
 it. This function doesn't print anything if PROGRESS is less than 100 and
 output stream is not interactive or `*effects-enabled*' is NIL. Insert
-MARGIN spaces, then LABEL (style for the label is set with
-LABEL-STYLE). Size of progress bar is set by BAR-WIDTH. If BAR-WIDTH is not
-a positive number, `*terminal-width*' will be added to it to get positive
-BAR-WIDTH. BAR-STYLE is the style that will be used for the bar itself,
-while NUM-STYLE will be used for number of percents and some additional
-elements. Output goes to STREAM."
+MARGIN spaces, then LABEL (style for the label is set with LABEL-STYLE).
+Size of progress bar is set by BAR-WIDTH. If BAR-WIDTH is not a positive
+number, `*terminal-width*' will be added to it to get positive BAR-WIDTH.
+BAR-STYLE is the style that will be used for the bar itself, while NUM-STYLE
+will be used for number of percents and some additional elements. Output
+goes to STREAM."
   (unless (and (< progress 100)
                (not (effects-p stream)))
     (perform-hook :before-printing)
@@ -565,12 +565,12 @@ there are more levels of nesting than characters in the string, it will be
 cycled. BULLET-STYLE is used for bullets. It can be also a list, in this
 case it's possible to specify different styles for different levels of
 nesting. ITEM-STYLE is used to render the list items. MARK-STYLE is used for
-items that end with MARK-SUFFIX (it can be any printable
-object). LEVEL-MARGIN must be a positive integer that specifies how to
-increase margin for every level of nesting, you can also use plain
-MARGIN. FILL-COLUMN is used to split long items, if it's not a positive
-number, `*terminal-width*' will be added to it to get positive
-FILL-COLUMN. Output goes to STREAM."
+items that end with MARK-SUFFIX (it can be any printable object).
+LEVEL-MARGIN must be a positive integer that specifies how to increase
+margin for every level of nesting, you can also use plain MARGIN.
+FILL-COLUMN is used to split long items, if it's not a positive number,
+`*terminal-width*' will be added to it to get positive FILL-COLUMN. Output
+goes to STREAM."
   (let ((bullet       (apply #'circular-list
                              (coerce (string bullet) 'list)))
         (bullet-style (apply #'circular-list
@@ -617,28 +617,27 @@ FILL-COLUMN. Output goes to STREAM."
                  (level-margin 3)
                  (fill-column  0)
                  (stream       *standard-output*))
-  "Print ordered list according to TREE. If we consider TREE a list,
+  "Print an ordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
 list where CAR is list item and CDR is sublist of the item. INDEX must be a
 list designator, its elements should be keywords that denote how to
 represent numeration. Acceptable values are:
 
-:ARABIC  — indexes will be printed as arabic numerals (default value)
-:ROMAN   — indexes will be printed as roman numerals
-:LETTER  — indexes will be printed as letters of Latin alphabet
-:CAPITAL — the same as :LETTER, but capital letters are used
+:ARABIC—indexes will be printed as arabic numerals (default value)
+:ROMAN—indexes will be printed as roman numerals
+:LETTER—indexes will be printed as letters of Latin alphabet
+:CAPITAL—the same as :LETTER, but capital letters are used
 
 If there are more levels of nesting than elements in the list, it will be
-cycled. The same applies to DELIMITER, which must be a string
-designator. INDEX-STYLE is used for indexes. It can be also list, in this
-case it's possible to specify different styles for different levels of
-nesting. ITEM-STYLE is used to render the list items. MARK-STYLE is used for
-items that end with MARK-SUFFIX (it can be any printable
-object). LEVEL-MARGIN must be a positive integer that specifies how to
-increase margin for every level of nesting, you can also use plain
-MARGIN. FILL-COLUMN is used to split long items, if it's not a positive
-number, `*terminal-output*' will be added to it to get positive
-FILL-COLUMN. Output goes to STREAM."
+cycled. The same applies to DELIMITER, which must be a string designator.
+INDEX-STYLE is used for indexes. It can be also list, in this case it's
+possible to specify different styles for different levels of nesting.
+ITEM-STYLE is used to render the list items. MARK-STYLE is used for items
+that end with MARK-SUFFIX (it can be any printable object). LEVEL-MARGIN
+must be a positive integer that specifies how to increase margin for every
+level of nesting, you can also use plain MARGIN. FILL-COLUMN is used to
+split long items, if it's not a positive number, `*terminal-output*' will be
+added to it to get positive FILL-COLUMN. Output goes to STREAM."
   (let ((index       (apply #'circular-list
                             (ensure-cons index)))
         (index-style (apply #'circular-list
@@ -715,11 +714,10 @@ style in which borders of the table should be printed. HEADER-STYLE will be
 applied to the first row of the table (also to the first column if
 COL-HEADER is not NIL) and CELL-STYLE will be applied to all other rows. If
 CELL-STYLE is a list, its elements will be used to differently render every
-column. Objects that end with MARK-SUFFIX will be printed using
-MARK-STYLE. MARGIN, COLUMN-WIDTH (list desginator, may be used to set
-different width for every column), and ALIGN can also be specified. Valid
-values of ALIGN are: :LEFT (default value), :CENTER, and :RIGHT. Output goes
-to STREAM."
+column. Objects that end with MARK-SUFFIX will be printed using MARK-STYLE.
+MARGIN, COLUMN-WIDTH (list desginator, may be used to set different width
+for every column), and ALIGN can also be specified. Valid values of ALIGN
+are: :LEFT (default value), :CENTER, and :RIGHT. Output goes to STREAM."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (columns (length (extremum objects #'> :key #'length)))

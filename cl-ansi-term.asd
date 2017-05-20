@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp -*-
 ;;;
-;;; ASDF system definition for cl-ansi-term — library to output formatted
-;;; text on ANSI-compliant terminals.
+;;; ASDF system definition for cl-ansi-term—library to output formatted text
+;;; on ANSI-compliant terminals.
 ;;;
 ;;; Copyright © 2015–2017 Mark Karpov
 ;;;
