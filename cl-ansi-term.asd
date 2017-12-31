@@ -3,7 +3,7 @@
 ;;; ASDF system definition for cl-ansi-term—library to output formatted text
 ;;; on ANSI-compliant terminals.
 ;;;
-;;; Copyright © 2015–2017 Mark Karpov
+;;; Copyright © 2015–2018 Mark Karpov
 ;;;
 ;;; cl-ansi-term is free software: you can redistribute it and/or modify it
 ;;; under the terms of the GNU General Public License as published by the
