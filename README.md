@@ -31,9 +31,6 @@ It's also possible to disable all effects and coloration.
 
 ## Installation
 
-Download or clone the repository and put it into some place where ASDF can
-find it.
-
 Via Quicklisp (recommended):
 
 ```common-lisp
@@ -44,7 +41,7 @@ Via Quicklisp (recommended):
 
 See contents of the directory `doc`. Documentation is also available online:
 
-https://mrkkrp.github.io/cl-ansi-term
+https://vindarel.github.io/cl-ansi-term
 
 ## License
 
