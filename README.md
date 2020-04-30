@@ -12,6 +12,14 @@ more about good ol' textual interface than *emulation of GUI* in terminal.
 An example of user interface created with `cl-ansi-term`
 is [here](https://github.com/mrkkrp/shtookovina).
 
+cl-ansi-term uses the concept of **style sheet** to manage coloration of
+output. Define styles, give them names, specify foreground colors,
+background colors, and effects for every style.
+
+The library is capable of *detecting whether the output goes to a terminal or a
+file*. If the latter case takes place, no escape sequences will be outputted.
+It's also possible to disable all effects and coloration.
+
 `cl-ansi-term` can print the following things:
 
 * colorized text
@@ -21,14 +29,6 @@ is [here](https://github.com/mrkkrp/shtookovina).
 * ordered lists
 * tables
 
-`cl-ansi-term` uses the concept of style sheet to manage coloration of
-output. Define styles, give them names, specify foreground colors,
-background colors, and effects for every style.
-
-The library is capable of detecting whether output goes to a terminal or a
-file. If the latter case takes place, no escape sequences will be outputted.
-It's also possible to disable all effects and coloration.
-
 ## Installation
 
 Via Quicklisp (recommended):
@@ -37,14 +37,18 @@ Via Quicklisp (recommended):
 (ql:quickload "cl-ansi-term")
 ```
 
+Then you can use the `term` nickname.
+
+
 ## Documentation
 
-See contents of the directory `doc`. Documentation is also available online:
+See the `doc` directory. The documentation is also available online:
 
 https://vindarel.github.io/cl-ansi-term
 
 ## License
 
 Copyright © 2015–2018 Mark Karpov
+Copyright © 2018–2020 Vindarel
 
 Distributed under GNU GPL, version 3.
