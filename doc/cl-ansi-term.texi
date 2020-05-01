@@ -107,6 +107,15 @@ used. You cannot redefine @code{:default} style, it's always represent
 default parameters of rendition.
 @end defun
 
+Example:
+
+@example
+(update-style-sheet
+ '((:header :cyan   :underline)
+   (:mark   :red    :reverse)
+   (:term   :yellow :bold)))
+@end example
+
 @cindex foreground colors
 
 Foreground colors are (default value is @code{:default}):
@@ -227,15 +236,6 @@ video
 @code{:overlined}
 @end itemize
 
-Here is an example of @code{update-style-sheet} function:
-
-@example
-(update-style-sheet
- '((:header :cyan   :underline)
-   (:mark   :red    :reverse)
-   (:term   :yellow :bold)))
-@end example
-
 @node Primitives
 @chapter Primitives
 
@@ -259,6 +259,15 @@ denotes style of the object. Unspecified styles default to
 control corresponding parameters of output. Valid values for
 @var{align} are @code{:left} (default), @code{:center}, and
 @code{:right}. Output goes to @var{stream}.
+
+Example:
+@example
+(term:cat-print '(:abc :def :ghi))
+ABCDEFGHI
+(term:cat-print '(:abc :def :ghi) :align :center)
+                                   ABCDEFGHI
+
+@end example
 @end defun
 
 @defun print control-string @code{&key} args base-style margin fill-column align stream
@@ -274,9 +283,11 @@ control corresponding parameters of output. Valid values for
 @var{align} are @code{:left} (default), @code{:center}, and
 @code{:right}. Output goes to @var{stream}.
 
-
-For example:
-@code{(term:print "~ and ~" :args '("foo" "bar"))} prints @code{"foo and bar"}.
+Example:
+@example
+(term:print "~ and ~" :args '("foo" "bar"))
+;; "foo and bar"
+@end example
 @end defun
 
 @defun hr @code{&key} filler style width align stream
@@ -287,6 +298,12 @@ accumulated. If @var{width} is not a positive number,
 @var{width}. @var{style} controls graphic rendition. @var{align}
 should be a keyword: @code{:left}, @code{:right}, or
 @code{:center}. Output goes to @var{stream}.
+
+Example:
+@example
+(term:hr :filler "=")
+================================================================================
+@end example
 @end defun
 
 @defun progress-bar label progress @code{&key} margin label-style filler bar-style num-style bar-width stream
@@ -323,6 +340,17 @@ how to increase margin for every level of nesting, you can also use
 plain @var{margin}. @var{fill-column} is used to split long items, if
 it's not a positive number, @var{*terminal-width*} will be added to it
 to get positive @var{fill-column}. Output goes to @var{stream}.
+
+Example:
+
+@example
+(term:u-list '((:one one-a :one-b) :two))
+* ONE
+  - ONE-A
+  - ONE-B
+* TWO
+@end example
+
 @end defun
 
 @defun o-list tree @code{&key} index delimiter mark-suffix index-style item-style mark-style margin level-margin fill-column stream
@@ -357,6 +385,17 @@ every level of nesting, you can also use plain
 @var{margin}. @var{fill-column} is used to split long items, if it's
 not a positive number, @var{*terminal-output*} will be added to it to
 get positive @var{fill-column}. Output goes to @var{stream}.
+
+Example:
+
+@example
+(term:o-list '((:one one-a :one-b) :two))
+1. ONE
+   1. ONE-A
+   2. ONE-B
+2. TWO
+@end example
+
 @end defun
 
 @defun table objects @code{&key} mark-suffix border-chars border-style header-style cell-style mark-style col-header margin column-width align stream
@@ -375,6 +414,17 @@ may be used to set different width for every column), and @var{align}
 can also be specified. Valid values of @var{align} are: @code{:left}
 (default value), @code{:center}, and @code{:right}. Output goes to
 @var{stream}.
+
+Example:
+@example
+(term:table (list '("name" "age")
+                  '("me" "7")))
++---------+---------+
+|name     |age      |
++---------+---------+
+|me       |7        |
++---------+---------+
+@end example
 @end defun
 
 @node Hooks

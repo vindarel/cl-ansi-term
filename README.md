@@ -46,6 +46,33 @@ See the `doc` directory. The documentation is also available online:
 
 https://vindarel.github.io/cl-ansi-term
 
+Quick snippets:
+
+~~~lisp
+(term:o-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two))
+1. ONE
+   1. ONE-A
+   2. ONE-B
+      1. ONE-B-1
+      2. ONE-B-2
+2. TWO
+
+(term:table (list '("name" "age")
+                  '("me" "7")))
++---------+---------+
+|name     |age      |
++---------+---------+
+|me       |7        |
++---------+---------+
+
+(term:hr :filler "=")
+================================================================================
+
+(term:cat-print '(:abc :def :ghi) :align :center)
+                                   ABCDEFGHI
+~~~
+
+
 ## License
 
 Copyright © 2015–2018 Mark Karpov
