@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/mrkkrp/cl-ansi-term.svg?branch=master)](https://travis-ci.org/mrkkrp/cl-ansi-term)
 [![Quicklisp](http://quickdocs.org/badge/cl-ansi-term.svg)](http://quickdocs.org/cl-ansi-term/)
 
-`cl-ansi-term` allows to print various primitives on ANSI-complaint
+`cl-ansi-term` allows to print various primitives on ANSI-compliant
 terminals. It also supports coloration and effects. `cl-ansi-term` is not
 something like `ncurses`, because it works with primitives that you can
 output in your terminal, as well as redirect to a file. In other words, it's
