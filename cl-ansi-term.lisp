@@ -289,6 +289,26 @@ rendition."
     (print-partially filler 0 rest stream)
     (set-style :default)))
 
+(defun largest-elt (lines)
+  "Return the largest element of the given strings."
+  (extremum lines #'> :key #'length))
+
+(defun largest-length (lines)
+  "Return the largest length of the given strings."
+  (length (largest-elt lines)))
+#+nil
+(assert (equalp 8 (largest-length '("rst" "ldvvvvvv" nil))))
+
+(defun ensure-circular-list (object)
+  (apply #'circular-list
+         (ensure-cons object)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                               Functions                                ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun print-words (objects
                     &key
                       (base-style  :default)
@@ -559,24 +579,60 @@ goes to STREAM."
                  (stream       *standard-output*))
   "Print an unordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
-list where CAR is the list item and CDR is sublist of the item. BULLET must
-be a string designator, it will be converted to string if needed and its
-characters will be used as bullets: zeroth character will be the bullet for
-top level of the list, first character is the bullet for sublist, etc. If
-there are more levels of nesting than characters in the string, it will be
-cycled. BULLET-STYLE is used for bullets. It can be also a list, in this
+list where CAR is the list item and CDR is sublist of the item.
+
+Example:
+
+(term:u-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two))
+
+* ONE
+  - ONE-A
+  - ONE-B
+    ~ ONE-B-1
+    ~ ONE-B-2
+* TWO
+
+BULLET is a string. Each character will be used, each time in a row,
+as the list bullet. They can be cycled over.
+
+Example:
+
+(term:u-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two)
+             :bullet #\+)
++ ONE
+  + ONE-A
+  + ONE-B
+    + ONE-B-1
+    + ONE-B-2
++ TWO
+
+(term:u-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two)
+                   :bullet \"+-\")
++ ONE
+  - ONE-A
+  - ONE-B
+    + ONE-B-1
+    + ONE-B-2
++ TWO
+
+
+BULLET-STYLE is used for bullets. It can be also a list, in this
 case it's possible to specify different styles for different levels of
-nesting. ITEM-STYLE is used to render the list items. MARK-STYLE is used for
+nesting.
+
+ITEM-STYLE is used to render the list items. MARK-STYLE is used for
 items that end with MARK-SUFFIX (it can be any printable object).
+
 LEVEL-MARGIN must be a positive integer that specifies how to increase
 margin for every level of nesting, you can also use plain MARGIN.
+
 FILL-COLUMN is used to split long items, if it's not a positive number,
-`*terminal-width*' will be added to it to get positive FILL-COLUMN. Output
-goes to STREAM."
-  (let ((bullet       (apply #'circular-list
-                             (coerce (string bullet) 'list)))
-        (bullet-style (apply #'circular-list
-                             (ensure-cons bullet-style)))
+`*terminal-width*' will be added to it to get positive FILL-COLUMN.
+
+Output goes to STREAM."
+  (let ((bullet (ensure-circular-list
+                 (coerce (string bullet) 'list)))
+        (bullet-style (ensure-circular-list bullet-style) )
         (mark-suffix  (string* mark-suffix)))
     (labels ((print-item (level item bullet bullet-style)
                (let ((margin (+ margin (* level level-margin))))
@@ -621,7 +677,19 @@ goes to STREAM."
                  (stream       *standard-output*))
   "Print an ordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
-list where CAR is list item and CDR is sublist of the item. INDEX must be a
+list where CAR is list item and CDR is sublist of the item.
+
+Example:
+
+(term:o-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two))
+1. ONE
+   1. ONE-A
+   2. ONE-B
+      1. ONE-B-1
+      2. ONE-B-2
+2. TWO
+
+INDEX must be a
 list designator, its elements should be keywords that denote how to
 represent numeration. Acceptable values are:
 
@@ -632,20 +700,26 @@ represent numeration. Acceptable values are:
 
 If there are more levels of nesting than elements in the list, it will be
 cycled. The same applies to DELIMITER, which must be a string designator.
+
 INDEX-STYLE is used for indexes. It can be also list, in this case it's
 possible to specify different styles for different levels of nesting.
-ITEM-STYLE is used to render the list items. MARK-STYLE is used for items
+
+ITEM-STYLE is used to render the list items.
+
+MARK-STYLE is used for items
 that end with MARK-SUFFIX (it can be any printable object). LEVEL-MARGIN
 must be a positive integer that specifies how to increase margin for every
-level of nesting, you can also use plain MARGIN. FILL-COLUMN is used to
+level of nesting, you can also use plain MARGIN.
+
+FILL-COLUMN is used to
 split long items, if it's not a positive number, `*terminal-output*' will be
-added to it to get positive FILL-COLUMN. Output goes to STREAM."
-  (let ((index       (apply #'circular-list
-                            (ensure-cons index)))
-        (index-style (apply #'circular-list
-                            (ensure-cons index-style)))
-        (delimiter   (apply #'circular-list
-                            (coerce (string delimiter) 'list)))
+added to it to get positive FILL-COLUMN.
+
+Output goes to STREAM."
+  (let ((index       (ensure-circular-list index))
+        (index-style (ensure-circular-list index-style))
+        (delimiter   (ensure-circular-list
+                      (coerce (string delimiter) 'list)))
         (mark-suffix (string* mark-suffix)))
     (labels ((print-item (level i item index index-style delimiter)
                (let ((margin (+ margin (* level level-margin)))
@@ -696,16 +770,6 @@ added to it to get positive FILL-COLUMN. Output goes to STREAM."
       (perform-hook :after-printing)
       nil)))
 
-(defun largest-elt (lines)
-  "Return the largest element of the given strings."
-  (extremum lines #'> :key #'length))
-
-(defun largest-length (lines)
-  "Return the largest length of the given strings."
-  (length (largest-elt lines)))
-#+nil
-(assert (equalp 8 (largest-length '("rst" "ldvvvvvv" nil))))
-
 (defun table (objects
               &key
                 (mark-suffix  #\*)
@@ -747,11 +811,9 @@ Output goes to STREAM."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (nb-columns (largest-length objects))
-         (cell-style (apply #'circular-list
-                            (ensure-cons cell-style)))
+         (cell-style (ensure-circular-list cell-style))
          ;; the column width is made a circular list: use with POP.
-         (column-width (apply #'circular-list
-                              (ensure-cons column-width)))
+         (column-width (ensure-circular-list column-width))
          (width (1+ (reduce #'+ (subseq column-width 0 nb-columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))

@@ -57,6 +57,16 @@ Quick snippets:
       2. ONE-B-2
 2. TWO
 
+(term:u-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two)
+              :bullet \"+-\")
++ ONE
+  - ONE-A
+  - ONE-B
+    + ONE-B-1
+    + ONE-B-2
++ TWO
+
+
 (term:table (list '("name" "age")
                   '("me" "7")))
 +---------+---------+
