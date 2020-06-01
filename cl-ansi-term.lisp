@@ -55,6 +55,8 @@ If you want to dynamically change this variable, write and register
 :BEFORE-PRINTING hook and reassign terminal width before printing takes
 place.")
 
+(defparameter *column-width* 10 "The maximum table cells' width.")
+
 (defparameter *hooks* (make-hash-table)
   "This variable is bound to a hash table that provides access to lists of
 functions by given key. We use keywords as keys. Arguments for the functions
@@ -704,7 +706,7 @@ added to it to get positive FILL-COLUMN. Output goes to STREAM."
                 (mark-style   :default)
                 (col-header   nil)
                 (margin       0)
-                (column-width 10)
+                (column-width *column-width*)
                 (align        :left)
                 (stream       *standard-output*))
   "Print a table filling cells with OBJECTS. OBJECTS must be a list of list
@@ -722,7 +724,7 @@ column.
 
 Objects that end with MARK-SUFFIX will be printed using MARK-STYLE.
 
-COLUMN-WIDTH is 10 by default. It can be an integer that applies to
+COLUMN-WIDTH is 10 by default (see `*column-width*'). It can be an integer that applies to
 all columns, or a list designator to set a different
 width for every column. A cell content is truncated to fit the width. See `str:*ellipsis*'
 for the ellusion string, `(…)' by default.
@@ -740,7 +742,7 @@ Output goes to STREAM."
          ;; the column width is made a circular list: use with POP.
          (column-width (apply #'circular-list
                               (ensure-cons column-width)))
-         (width (1+ (reduce #'+ (subseq column-width 0 columns))))
+         (width (1+ (reduce #'+ (subseq column-width 0 nb-columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))
          (row-index 0))
@@ -753,7 +755,7 @@ Output goes to STREAM."
                (when border-style
                  (align)
                  (set-style border-style stream)
-                 (dolist (i (subseq column-width 0 columns))
+                 (dolist (i (subseq column-width 0 nb-columns))
                    (check-type i (integer 1))
                    (princ (char border-chars 2) stream)
                    (dotimes (j (1- i))
