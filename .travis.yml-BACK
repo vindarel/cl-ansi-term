@@ -1,6 +1,10 @@
 language: lisp
 sudo: required
 
+# DISABLED june, 2020
+# because it only tests that the system loads.
+# It has no tests to run.
+
 env:
   matrix:
     - LISP=abcl
