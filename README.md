@@ -132,6 +132,15 @@ MARGIN, an integer, is the left margin of the whole table.
 Output goes to STREAM.
 ```
 
+## See also
+
+- https://github.com/AccelerationNet/data-table
+- https://github.com/telephil/cl-ascii-table/
+
+Blog posts:
+
+- http://40ants.com/lisp-project-of-the-day/2020/05/0082-data-table.html
+- http://40ants.com/lisp-project-of-the-day/2020/05/0084-cl-ascii-table.html
 
 ## License
 
