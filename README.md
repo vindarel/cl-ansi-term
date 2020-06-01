@@ -65,12 +65,72 @@ Quick snippets:
 |me       |7        |
 +---------+---------+
 
+;; A long cell is truncated to :column-width, 10 by default.
+
+(term:table '(("name" "age" "email")
+              ("me" 7 "some@blah")
+              ("me" 7 "some@with-some-longer.email")))
++---------+---------+---------+
+|name     |age      |email    |
++---------+---------+---------+
+|me       |7        |some@blah|
++---------+---------+---------+
+|me       |7        |some@w(…)|
++---------+---------+---------+
+
+;; Each column can have a different length.
+
+(term:table '(("name" "age" "email")
+              ("me" 7 "some@blah")
+              ("me" 7 "some@with-some-longer.email"))
+             :column-width '(10 4 20))
++---------+---+-------------------+
+|name     |age|email              |
++---------+---+-------------------+
+|me       |7  |some@blah          |
++---------+---+-------------------+
+|me       |7  |some@with-some-l(…)|
++---------+---+-------------------+
+
+
 (term:hr :filler "=")
 ================================================================================
 
 (term:cat-print '(:abc :def :ghi) :align :center)
                                    ABCDEFGHI
 ~~~
+
+### Docstrings
+
+#### `table`
+
+```
+Print a table filling cells with OBJECTS. OBJECTS must be a list of list
+designators with equal lengths.
+
+If BORDER-STYLE is NIL, no border will be
+printed, otherwise BORDER-STYLE is expected to be a keyword that denotes
+the style in which borders of the table should be printed.
+
+HEADER-STYLE will be
+applied to the first row of the table (also to the first column if
+COL-HEADER is not NIL) and CELL-STYLE will be applied to all other rows. If
+CELL-STYLE is a list, its elements will be used to differently render every
+column.
+
+Objects that end with MARK-SUFFIX will be printed using MARK-STYLE.
+
+COLUMN-WIDTH is 10 by default. It can be an integer that applies to
+all columns, or a list designator to set a different
+width for every column. A cell content is truncated to fit the width. See `str:*ellipsis*'
+for the ellusion string, `(…)' by default.
+
+ALIGN controls the alignmet inside a cell. It can take the values :LEFT (default value), :CENTER, and :RIGHT.
+
+MARGIN, an integer, is the left margin of the whole table.
+
+Output goes to STREAM.
+```
 
 
 ## License

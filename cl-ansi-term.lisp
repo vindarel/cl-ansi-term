@@ -708,30 +708,47 @@ added to it to get positive FILL-COLUMN. Output goes to STREAM."
                 (align        :left)
                 (stream       *standard-output*))
   "Print a table filling cells with OBJECTS. OBJECTS must be a list of list
-designators with equal lengths. If BORDER-STYLE is NIL, no border will be
+designators with equal lengths.
+
+If BORDER-STYLE is NIL, no border will be
 printed, otherwise BORDER-STYLE is expected to be a keyword that denotes
-style in which borders of the table should be printed. HEADER-STYLE will be
+the style in which borders of the table should be printed.
+
+HEADER-STYLE will be
 applied to the first row of the table (also to the first column if
 COL-HEADER is not NIL) and CELL-STYLE will be applied to all other rows. If
 CELL-STYLE is a list, its elements will be used to differently render every
-column. Objects that end with MARK-SUFFIX will be printed using MARK-STYLE.
-MARGIN, COLUMN-WIDTH (list desginator, may be used to set different width
-for every column), and ALIGN can also be specified. Valid values of ALIGN
-are: :LEFT (default value), :CENTER, and :RIGHT. Output goes to STREAM."
+column.
+
+Objects that end with MARK-SUFFIX will be printed using MARK-STYLE.
+
+COLUMN-WIDTH is 10 by default. It can be an integer that applies to
+all columns, or a list designator to set a different
+width for every column. A cell content is truncated to fit the width. See `str:*ellipsis*'
+for the ellusion string, `(…)' by default.
+
+ALIGN controls the alignmet inside a cell. It can take the values :LEFT (default value), :CENTER, and :RIGHT.
+
+MARGIN, an integer, is the left margin of the whole table.
+
+Output goes to STREAM."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (columns (length (extremum objects #'> :key #'length)))
          (cell-style (apply #'circular-list
                             (ensure-cons cell-style)))
+         ;; the column width is made a circular list: use with POP.
          (column-width (apply #'circular-list
                               (ensure-cons column-width)))
          (width (1+ (reduce #'+ (subseq column-width 0 columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))
          (row-index 0))
+
     (labels ((align ()
                (print-white-space margin stream)
                (align-object (+ width margin) align stream))
+
              (h-border ()
                (when border-style
                  (align)
@@ -744,32 +761,41 @@ are: :LEFT (default value), :CENTER, and :RIGHT. Output goes to STREAM."
                  (princ (char border-chars 2) stream)
                  (set-style :default stream)
                  (terpri stream)))
+
              (v-border ()
                (when border-style
                  (set-style border-style stream)
                  (princ (char border-chars 1))
                  (set-style :default stream)))
+
              (print-row (index items)
                (align)
                (let ((i 0))
                  (dolist (cell items)
-                   (let ((cell (string* cell)))
+                   (let ((cell (string* cell))
+                         (width (pop column-width)))
                      (v-border)
                      (set-style
-                      (cond ((ends-with-subseq mark-suffix cell) mark-style)
-                            ((zerop index) header-style)
-                            ((and col-header (zerop i)) header-style)
-                            (t (pop cell-style)))
-                      stream)
-                     (princ cell stream)
+                      (cond ((ends-with-subseq mark-suffix cell)
+                             mark-style)
+                            ((zerop index)
+                             header-style)
+                            ((and col-header (zerop i))
+                             header-style)
+                            (t (pop cell-style))))
+                     (princ (str:shorten (- width
+                                            (if border-style 1 0))
+                                         cell)
+                            stream)
                      (set-style :default stream)
-                     (print-white-space (- (pop column-width)
+                     (print-white-space (- width
                                            (length cell)
                                            (if border-style 1 0))
                                         stream)
                      (incf i)))
                  (v-border)
                  (terpri))))
+
       (dolist (row objects)
         (h-border)
         (print-row row-index row)

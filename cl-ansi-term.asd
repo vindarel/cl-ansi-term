@@ -19,10 +19,11 @@
 ;;; with this program. If not, see <http://www.gnu.org/licenses/>.
 
 (asdf:defsystem :cl-ansi-term
-  :version      "0.1.2"
+  :version      "0.1.3"
   :description  "library to output formatted text on ANSI-compliant terminals"
   :author       "Mark Karpov"
   :license      "GNU GPL, version 3"
   :components   ((:file "cl-ansi-term"))
   :depends-on   (:alexandria
-                 :anaphora))
+                 :anaphora
+                 :str))
