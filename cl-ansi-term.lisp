@@ -696,6 +696,16 @@ added to it to get positive FILL-COLUMN. Output goes to STREAM."
       (perform-hook :after-printing)
       nil)))
 
+(defun largest-elt (lines)
+  "Return the largest element of the given strings."
+  (extremum lines #'> :key #'length))
+
+(defun largest-length (lines)
+  "Return the largest length of the given strings."
+  (length (largest-elt lines)))
+#+nil
+(assert (equalp 8 (largest-length '("rst" "ldvvvvvv" nil))))
+
 (defun table (objects
               &key
                 (mark-suffix  #\*)
@@ -736,7 +746,7 @@ MARGIN, an integer, is the left margin of the whole table.
 Output goes to STREAM."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
-         (columns (length (extremum objects #'> :key #'length)))
+         (nb-columns (largest-length objects))
          (cell-style (apply #'circular-list
                             (ensure-cons cell-style)))
          ;; the column width is made a circular list: use with POP.
