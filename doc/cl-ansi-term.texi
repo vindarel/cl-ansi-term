@@ -133,7 +133,7 @@ Foreground colors are (default value is @code{:default}):
 @item
 @code{:blue}
 @item
-@code{:magneta}
+@code{:magenta}
 @item
 @code{:cyan}
 @item
@@ -149,7 +149,7 @@ Foreground colors are (default value is @code{:default}):
 @item
 @code{:blue*}
 @item
-@code{:magneta*}
+@code{:magenta*}
 @item
 @code{:cyan*}
 @item
@@ -176,7 +176,7 @@ Background colors are (default value is @code{:b-default}):
 @item
 @code{:b-blue}
 @item
-@code{:b-magneta}
+@code{:b-magenta}
 @item
 @code{:b-cyan}
 @item
@@ -192,7 +192,7 @@ Background colors are (default value is @code{:b-default}):
 @item
 @code{:b-blue*}
 @item
-@code{:b-magneta*}
+@code{:b-magenta*}
 @item
 @code{:b-cyan*}
 @item
