@@ -10,7 +10,7 @@ something like `ncurses`, because it works with primitives that you can
 output in your terminal, as well as redirect to a file. In other words, it's
 more about good ol' textual interface than *emulation of GUI* in terminal.
 An example of user interface created with `cl-ansi-term`
-is [here](https://github.com/mrkkrp/shtookovina).
+is [here](https://github.com/lisp-mirror/shtookovina).
 
 cl-ansi-term uses the concept of **style sheet** to manage coloration of
 output. Define styles, give them names, specify foreground colors,
