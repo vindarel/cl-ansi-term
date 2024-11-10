@@ -35,7 +35,9 @@
               #:o-list
               #:table
               #:vspace
-              #:banner)
+              #:banner
+              #:plist-vtable
+              #:plist-table)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -918,3 +920,98 @@ Output goes to STREAM."
   (finish-output stream)
   (perform-hook :after-printing stream)
   nil)
+
+(defun plist-table (plist &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                            )
+  "Print PLIST as a table: the plist keys as the headers row, the plist values as one row below.
+
+  COLS allows to limit the number of columns.
+
+  Other arguments are passed to the TABLE function.
+
+  Example:
+
+    (plist-table '(:a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+
+    See also PLIST-VTABLE for headers in a column."
+  (let ((keys (serapeum:plist-keys plist))
+        (values (serapeum:plist-values plist)))
+    (table (list (serapeum:take cols keys)
+                 (serapeum:take cols values))
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
+(defun plist-vtable (plist
+                     &key
+                       (mark-suffix  #\*)
+                       (border-chars "-|+")
+                       (border-style :default)
+                       (header-style :default)
+                       (cell-style   :default)
+                       (mark-style   :default)
+                       (col-header   nil)
+                       (margin       0)
+                       (column-width *column-width*)
+                       (align        :left)
+                       (stream       *standard-output*)
+                       )
+  "Print PLIST as a table, where the first column is the keys, the second column is the value.
+
+  Example:
+
+    (plist-vtable '(:a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+
+    |A        |1        |
+    +---------+---------+
+    |B        |2        |
+    +---------+---------+
+    |C        |3        |
+    +---------+---------+
+
+  See also PLIST-TABLE for headers in the first row."
+  (table (serapeum:batches plist 2)
+         :mark-suffix mark-suffix
+         :border-chars border-chars
+         :border-style border-style
+         :header-style header-style
+         :cell-style cell-style
+         :mark-style mark-style
+         :col-header col-header
+         :margin margin
+         :column-width column-width
+         :align align
+         :stream stream
+         ))

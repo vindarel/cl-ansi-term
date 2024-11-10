@@ -26,4 +26,5 @@
   :components   ((:file "cl-ansi-term"))
   :depends-on   (:alexandria
                  :anaphora
+                 :serapeum
                  :str))

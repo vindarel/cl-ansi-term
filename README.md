@@ -33,6 +33,8 @@ and (new and in testing)
 
 * vertical space: `vspace`
 * titles in banners: `banner`
+* pretty-print plists: `plist-table` and `plist-vtable`
+
 
 Hooks are applied before and after each printing primitive, see our documentation.
 
@@ -44,7 +46,14 @@ Via Quicklisp (recommended):
 (ql:quickload "cl-ansi-term")
 ```
 
-Then you can use the `term` nickname.
+Then you can use the `term` global nickname.
+
+cl-ansi-term depends on:
+
+* alexandria
+* serapeum (new as of Nov, 2024)
+* anaphora (will be removed)
+* cl-str
 
 
 ## Documentation
@@ -145,6 +154,49 @@ Print a title in between 2 horizontal lines, with vertical space before and afte
 
 
 ```
+
+### Pretty-print a plist: `plist-table` and `plist-vtable`
+
+`plist-table`:
+
+Print PLIST as a table: the plist keys as the headers row, the plist values as one row below.
+
+COLS allows to limit the number of columns.
+
+Other arguments are passed to the TABLE function.
+
+Example:
+
+```
+    (plist-table '(:a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+```
+
+`plist-vtable`:
+
+Print PLIST as a table, where the first column is the keys, the second column is the value.
+
+  Example:
+
+    (plist-vtable '(:a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+
+    |A        |1        |
+    +---------+---------+
+    |B        |2        |
+    +---------+---------+
+    |C        |3        |
+    +---------+---------+
+
 
 ### Stylesheets and colorized text
 
