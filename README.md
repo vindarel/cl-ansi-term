@@ -23,11 +23,18 @@ It's also possible to disable all effects and coloration.
 `cl-ansi-term` can print the following things:
 
 * colorized text
-* horizontal lines
-* progress bars
-* unordered lists
-* ordered lists
-* tables
+* horizontal lines: `hr`
+* progress bars (see also [progressons](https://github.com/vindarel/progressons))
+* unordered lists: `u-list`
+* ordered lists: `o-list`
+* tables: `table`
+
+and (new and in testing)
+
+* vertical space: `vspace`
+<!-- * banners -->
+
+Hooks are applied before and after each printing primitive, see our documentation.
 
 ## Installation
 
@@ -48,6 +55,8 @@ https://vindarel.github.io/cl-ansi-term
 
 Quick snippets:
 
+### Print ordered and unordered lists: `o-list`, `u-list`
+
 ~~~lisp
 (term:o-list '((:one one-a (:one-b :one-b-1 :one-b-2)) :two))
 1. ONE
@@ -65,8 +74,11 @@ Quick snippets:
     + ONE-B-1
     + ONE-B-2
 + TWO
+~~~
 
+### Print tables: `table`
 
+~~~lisp
 (term:table (list '("name" "age")
                   '("me" "7")))
 +---------+---------+
@@ -101,14 +113,28 @@ Quick snippets:
 +---------+---+-------------------+
 |me       |7  |some@with-some-l(…)|
 +---------+---+-------------------+
+~~~
 
+### Print horizontal lines: `hr`
 
+~~~
 (term:hr :filler "=")
 ================================================================================
 
 (term:cat-print '(:abc :def :ghi) :align :center)
                                    ABCDEFGHI
 ~~~
+
+### Print vertical space: `vspace`
+
+Use `vspace`, arguments:
+
+* `width`: defaults to 3 newlines
+* `stream`: defaults to stdout.
+
+### Stylesheets and colorized text
+
+Please see our online documentation.
 
 ### Docstrings
 
@@ -155,6 +181,6 @@ Blog posts:
 ## License
 
 Copyright © 2015–2018 Mark Karpov
-Copyright © 2018–2020 Vindarel
+Copyright © 2018–2024 Vindarel
 
 Distributed under GNU GPL, version 3.

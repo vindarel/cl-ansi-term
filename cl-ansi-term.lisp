@@ -33,7 +33,8 @@
               #:progress-bar
               #:u-list
               #:o-list
-              #:table)
+              #:table
+              #:vspace)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -504,6 +505,19 @@ or :CENTER. Output goes to STREAM."
   (finish-output stream)
   (perform-hook :after-printing)
   nil)
+
+(defun vspace (&key
+               (stream *standard-output*)
+                 (width 3))
+  "Print vertical space, aka a WIDTH amount of newlines,
+  to STREAM (standard output by default).
+
+  Hooks are performed before and after printing."
+  (perform-hook :before-printing)
+  (format stream "~v&" width)
+  (terpri stream)
+  (finish-output stream)
+  (perform-hook :after-printing))
 
 (defun progress-bar (label progress
                      &key
