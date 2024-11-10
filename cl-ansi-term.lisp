@@ -34,7 +34,8 @@
               #:u-list
               #:o-list
               #:table
-              #:vspace)
+              #:vspace
+              #:banner)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -508,13 +509,38 @@ or :CENTER. Output goes to STREAM."
 
 (defun vspace (&key
                (stream *standard-output*)
-                 (width 3))
-  "Print vertical space, aka a WIDTH amount of newlines,
+                 (space 3))
+  "Print vertical space, aka a SPACE amount of newlines,
   to STREAM (standard output by default).
 
   Hooks are performed before and after printing."
   (perform-hook :before-printing)
   (format stream "~v&" width)
+  (terpri stream)
+  (finish-output stream)
+  (perform-hook :after-printing))
+
+(defun banner (title &key
+                       (stream *standard-output*)
+                       (style :default)
+                       (width 0)
+                       (space 1)
+                       (left-space 5)
+                       (align :left)
+                       (filler #\-))
+  "Print TITLE in-between two horizontal spaces (hr), with vertical space before and after.
+
+  SPACE controls how many blank lines are added before and after the title,
+  LEFT-SPACE helps to center the title a bit (defaults to 5)."
+  (perform-hook :before-printing)
+  (with-reasonable-width width
+      (align-object width align)
+    (vspace :width space)
+    (print-filler filler width style stream)
+    (format stream "~&~a" (make-string left-space :initial-element #\Space))
+    (cat-print title)
+    (print-filler filler width style stream)
+    (vspace :width space))
   (terpri stream)
   (finish-output stream)
   (perform-hook :after-printing))

@@ -32,7 +32,7 @@ It's also possible to disable all effects and coloration.
 and (new and in testing)
 
 * vertical space: `vspace`
-<!-- * banners -->
+* titles in banners: `banner`
 
 Hooks are applied before and after each printing primitive, see our documentation.
 
@@ -131,6 +131,20 @@ Use `vspace`, arguments:
 
 * `width`: defaults to 3 newlines
 * `stream`: defaults to stdout.
+
+### Print a title in a banner: `banner`
+
+Print a title in between 2 horizontal lines, with vertical space before and after.
+
+```lisp
+(banner "My title" :space 1)
+
+--------------------------------------------------------------------------------
+     My title
+--------------------------------------------------------------------------------
+
+
+```
 
 ### Stylesheets and colorized text
 
