@@ -37,7 +37,9 @@
               #:vspace
               #:banner
               #:plist-vtable
-              #:plist-table)
+              #:plist-table
+              #:ht-vtable
+              #:ht-table)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -971,6 +973,58 @@ Output goes to STREAM."
            :stream stream
            )))
 
+(defun ht-table (ht &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                            )
+  "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
+
+  COLS allows to limit the number of columns.
+
+  Other arguments are passed to the TABLE function.
+
+  Example:
+
+    (ht-table (serapeum:dict :a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+
+    See also HT-VTABLE for headers in a column."
+  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
+  ;;This could be a parameter.
+  (let ((keys (reverse (alexandria:hash-table-keys ht)))
+        (values (reverse (alexandria:hash-table-values ht))))
+    (table (list (serapeum:take cols keys)
+                 (serapeum:take cols values))
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
 (defun plist-vtable (plist
                      &key
                        (mark-suffix  #\*)
@@ -1003,6 +1057,52 @@ Output goes to STREAM."
 
   See also PLIST-TABLE for headers in the first row."
   (table (serapeum:batches plist 2)
+         :mark-suffix mark-suffix
+         :border-chars border-chars
+         :border-style border-style
+         :header-style header-style
+         :cell-style cell-style
+         :mark-style mark-style
+         :col-header col-header
+         :margin margin
+         :column-width column-width
+         :align align
+         :stream stream))
+
+(defun ht-vtable (ht
+                     &key
+                       (mark-suffix  #\*)
+                       (border-chars "-|+")
+                       (border-style :default)
+                       (header-style :default)
+                       (cell-style   :default)
+                       (mark-style   :default)
+                       (col-header   nil)
+                       (margin       0)
+                       (column-width *column-width*)
+                       (align        :left)
+                       (stream       *standard-output*)
+                       )
+  "Print PLIST as a table, where the first column is the keys, the second column is the value.
+
+  Example:
+
+    (ht-vtable '(:a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+
+    |A        |1        |
+    +---------+---------+
+    |B        |2        |
+    +---------+---------+
+    |C        |3        |
+    +---------+---------+
+
+  See also HT-TABLE for headers in the first row."
+  (table (reverse (serapeum:batches
+                   (alexandria:hash-table-plist ht)
+                   2))
          :mark-suffix mark-suffix
          :border-chars border-chars
          :border-style border-style

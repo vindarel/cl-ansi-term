@@ -197,6 +197,10 @@ Print PLIST as a table, where the first column is the keys, the second column is
     |C        |3        |
     +---------+---------+
 
+### Pretty-print a hash-table: `ht-table` and `ht-vtable`
+
+They have the same signature and output than the functions for plist above.
+
 
 ### Stylesheets and colorized text
 
