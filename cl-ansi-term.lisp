@@ -919,7 +919,16 @@ Output goes to STREAM."
     ;; - either call the PLISTS-TABLE function directly.
     ((and (every #'property-list-p one-or-many-objects)
           plists-p)
-     (apply #'plists-vtable one-or-many-objects args))
+
+     ;; !!
+     ;; Special handling for the VTABLE:
+     ;; if we passed a list of column widths to TABLE,
+     ;; they don't make sense anymore for the VTABLE,
+     ;; but we want to see the data correctly, so the largest cell
+     ;; takes precedence for all.
+     (let ((*column-width* (apply #'max (uiop:ensure-list (getf args :column-width)))))
+       (remf args :column-width)
+       (apply #'plists-vtable one-or-many-objects args)))
 
     ;; Hedge case: see above.
     ((and (not (consp (first one-or-many-objects)))
