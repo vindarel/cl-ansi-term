@@ -30,16 +30,20 @@
               #:cat-print
               #:print
               #:hr
+              #:vspace
+              #:banner
               #:progress-bar
               #:u-list
               #:o-list
               #:table
-              #:vspace
-              #:banner
+              #:vtable
               #:plist-vtable
               #:plist-table
               #:ht-vtable
-              #:ht-table)
+              #:ht-table
+              #:hts-vtable
+              #:hts-table
+              )
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -823,12 +827,33 @@ Output goes to STREAM."
                 (cell-style   :default)
                 (mark-style   :default)
                 (col-header   nil)
+                ;; (cols 1000)
                 (margin       0)
                 (column-width *column-width*)
                 (align        :left)
                 (stream       *standard-output*))
-  "Print a table filling cells with OBJECTS. OBJECTS must be a list of list
+  "Print a table filling cells with OBJECTS. OBJECTS must be a list of string
 designators with equal lengths.
+
+  To print a list of hash-tables, see HTS-TABLE.
+  To print a list of plists, see PLIST-TABLE.
+
+Example:
+
+   (table '((:A :B :C) (1 2 3)))
+
+=>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+    |10       |20       |30       |
+    +---------+---------+---------+
+
+
+See VTABLE to print the table vertically.
 
 If BORDER-STYLE is NIL, no border will be
 printed, otherwise BORDER-STYLE is expected to be a keyword that denotes
@@ -923,6 +948,70 @@ Output goes to STREAM."
   (perform-hook :after-printing stream)
   nil)
 
+(defun invert-plists-matrix (objects)
+  (loop :with length = (length (first objects))
+        :with grid = (loop :repeat length :collect (make-list (length objects)))
+        :for obj :in objects
+        :for i := 0 :then (incf i)
+        ;; :do (format t "~&col ~a~& grid? ~s" i grid)
+        :do (loop :for j :from 0 :to (1- length)
+                  :for row := (nth j grid)
+                  ;; :do (format t "row ~a row is ~a - " j row)
+                  :do  (setf (nth i row) (nth j obj)))
+        :finally (return grid)))
+
+(defun vtable (objects &key
+                         ;; (cols 1000)
+                         (mark-suffix  #\*)
+                         (border-chars "-|+")
+                         (border-style :default)
+                         (header-style :default)
+                         (cell-style   :default)
+                         (mark-style   :default)
+                         (col-header   nil)
+                         (margin       0)
+                         (column-width *column-width*)
+                         (align        :left)
+                         (stream       *standard-output*))
+  "Print a table where the headers are in the first column, not the firts row.
+
+  Like TABLE, OBJECTS must be a list of string designators with the same length.
+
+  Example output, where '(:A :B :C) is the list of headers:
+
+    (vtable '((:A :B :C) (1 2 3) (10 20 30) (1.1 2.2 3.3)))
+
+    +---------+---------+---------+---------+
+    |A        |1        |10       |1.1      |
+    +---------+---------+---------+---------+
+    |B        |2        |20       |2.2      |
+    +---------+---------+---------+---------+
+    |C        |3        |30       |3.3      |
+    +---------+---------+---------+---------+
+
+  With :border-style set to NIL:
+
+    A         1         10        1.1
+    B         2         20        2.2
+    C         3         30        3.3
+
+"
+  ;; first object is the keys,
+  ;; the rest are lists of values.
+  (table (invert-plists-matrix objects)
+         :mark-suffix mark-suffix
+         :border-chars border-chars
+         :border-style border-style
+         :header-style header-style
+         :cell-style cell-style
+         :mark-style mark-style
+         :col-header col-header
+         ;; :cols cols
+         :margin margin
+         :column-width column-width
+         :align align
+         :stream stream))
+
 (defun plist-table (plist &key
                             (cols 1000)
                             (mark-suffix  #\*)
@@ -958,58 +1047,6 @@ Output goes to STREAM."
     See also PLIST-VTABLE for headers in a column."
   (let ((keys (serapeum:plist-keys plist))
         (values (serapeum:plist-values plist)))
-    (table (list (serapeum:take cols keys)
-                 (serapeum:take cols values))
-           :mark-suffix mark-suffix
-           :border-chars border-chars
-           :border-style border-style
-           :header-style header-style
-           :cell-style cell-style
-           :mark-style mark-style
-           :col-header col-header
-           :margin margin
-           :column-width column-width
-           :align align
-           :stream stream
-           )))
-
-(defun ht-table (ht &key
-                            (cols 1000)
-                            (mark-suffix  #\*)
-                            (border-chars "-|+")
-                            (border-style :default)
-                            (header-style :default)
-                            (cell-style   :default)
-                            (mark-style   :default)
-                            (col-header   nil)
-                            (margin       0)
-                            (column-width *column-width*)
-                            (align        :left)
-                            (stream       *standard-output*)
-                            )
-  "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
-
-  COLS allows to limit the number of columns.
-
-  Other arguments are passed to the TABLE function.
-
-  Example:
-
-    (ht-table (serapeum:dict :a 1 :b 2 :c 3))
-
-  =>
-
-    +---------+---------+---------+
-    |A        |B        |C        |
-    +---------+---------+---------+
-    |1        |2        |3        |
-    +---------+---------+---------+
-
-    See also HT-VTABLE for headers in a column."
-  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
-  ;;This could be a parameter.
-  (let ((keys (reverse (alexandria:hash-table-keys ht)))
-        (values (reverse (alexandria:hash-table-values ht))))
     (table (list (serapeum:take cols keys)
                  (serapeum:take cols values))
            :mark-suffix mark-suffix
@@ -1067,7 +1104,60 @@ Output goes to STREAM."
          :margin margin
          :column-width column-width
          :align align
-         :stream stream))
+         :stream stream
+         ))
+
+(defun ht-table (ht &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                            )
+  "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
+
+  COLS allows to limit the number of columns.
+
+  Other arguments are passed to the TABLE function.
+
+  Example:
+
+    (ht-table (serapeum:dict :a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+
+    See also HT-VTABLE for headers in a column."
+  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
+  ;;This could be a parameter.
+  (let ((keys (reverse (alexandria:hash-table-keys ht)))
+        (values (reverse (alexandria:hash-table-values ht))))
+    (table (list (serapeum:take cols keys)
+                 (serapeum:take cols values))
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
 
 (defun ht-vtable (ht
                      &key
@@ -1083,7 +1173,7 @@ Output goes to STREAM."
                        (align        :left)
                        (stream       *standard-output*)
                        )
-  "Print PLIST as a table, where the first column is the keys, the second column is the value.
+  "Print the hash-table HT as a table, where the first column is the keys, the second column is the value.
 
   Example:
 
@@ -1115,3 +1205,113 @@ Output goes to STREAM."
          :align align
          :stream stream
          ))
+
+(defun hts-table (ht-list &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                            )
+  "Print the list of hash-tables HT-LIST as a table: the keys as the first row, the values of each hash-table as one row below.
+
+  Other arguments are passed to the TABLE function.
+
+  Example:
+
+    (hts-table (list (serapeum:dict :a 1 :b 2 :c 3)
+                     (serapeum:dict :a 10 :b 20 :c 30)))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+    |10       |20       |30       |
+    +---------+---------+---------+
+
+ See also HTS-VTABLE for a vertical table with keys displayed in the left column."
+  (declare (ignorable cols))
+  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
+  ;;This could be a parameter.
+  (let* ((keys (reverse (alexandria:hash-table-keys (first ht-list))))
+         (rows (collect-hash-tables-values keys ht-list)))
+    (table (cons keys rows)
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
+(defun collect-hash-tables-values (keys ht-list)
+  (loop for ht in ht-list
+        collect (loop for key in keys
+                      collect (gethash key ht))))
+
+(defun hts-vtable (ht-list
+                   &key
+                     (mark-suffix  #\*)
+                     (border-chars "-|+")
+                     (border-style :default)
+                     (header-style :default)
+                     (cell-style   :default)
+                     (mark-style   :default)
+                     (col-header   nil)
+                     ;; (cols 1000)
+                     (margin       0)
+                     (column-width *column-width*)
+                     (align        :left)
+                     (stream       *standard-output*)
+                     )
+  "Print the list of HASH-TABLES as a vertical table, where the first column is the keys,
+  the other columns are the values of each hash-table.
+
+  Example:
+
+    (hts-vtable (list (dict :a 1 :b 2 :c 3)
+                      (dict :a 10 :b 20 :c 30)))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |1        |10       |
+    +---------+---------+---------+
+    |B        |2        |20       |
+    +---------+---------+---------+
+    |C        |3        |30       |
+    +---------+---------+---------+
+
+  See also HTS-TABLE for a regular display with the keys as headers in the first row."
+  (let* ((keys (reverse (alexandria:hash-table-keys (first ht-list))))
+         (values (collect-hash-tables-values keys ht-list)))
+
+    (vtable (cons keys values)
+            :stream stream
+            :mark-suffix mark-suffix
+            :border-chars border-chars
+            :border-style border-style
+            :header-style header-style
+            :cell-style cell-style
+            :mark-style mark-style
+            :col-header col-header
+            :margin margin
+            :column-width column-width
+            :align align
+            ;; :cols cols                  ; unused in table
+            )))
