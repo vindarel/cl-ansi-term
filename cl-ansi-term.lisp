@@ -839,7 +839,7 @@ Output goes to STREAM."
        (t    (return)))))
 
 ;; trivial-types
-(defun association-list-p (var)
+(defun issues/association-list-p (var)
   "Returns true if OBJECT is an association list.
 
 Examples:
@@ -852,11 +852,27 @@ Examples:
   ;; (declare (optimize . #.*standard-optimize-qualities*))
   (%proper-list-p var 'cons))
 
+(defun association-list-p (var)
+  (when (consp var)
+    (not
+     (loop for it in var
+           :always (and (consp it)
+                        (%PROPER-LIST-P it)) ))))
+#++
+(progn
+  (let ((alist '((a . 1) (b . 2) (c . 3))))
+    (assert (association-list-p alist))
+    (assert (not (association-list-p '((a b c) (1 2 3)))))
+    (assert (not (association-list-p '((a b) (1 2)))))
+    ))
+
 (defun table-dispatch (one-or-many-objects
                        &rest keys
                        &key
                          (plists-p *prefer-plists-in-tables*)
-                          &ALLOW-OTHER-KEYS
+                         (alist nil)
+                         (alists nil)
+                       &ALLOW-OTHER-KEYS
                          )
   "Call the appropriate TABLE-* function for the type of objects.
 
@@ -872,6 +888,9 @@ Examples:
   - a list of lists.
   "
   (remf keys :plists-p) ; either add the key arg to all functions, either delete it. Destructive.
+  (remf keys :alist)
+  (remf keys :alists)
+
   (cond
     ;; One HT.
     ((hash-table-p one-or-many-objects)
@@ -880,9 +899,11 @@ Examples:
     ((and (consp one-or-many-objects)
           (hash-table-p (first one-or-many-objects)))
      (apply #'hts-table one-or-many-objects keys))
+
     ;; One plist.
     ((property-list-p one-or-many-objects)
-     (apply #'plist-table one-or-many-objects keys))
+     (apply #'plist-table one-or-many-objects keys)
+     'plist)
     ;; Can be distinguish between a list of plists and a list of lists?
     ;; Maybe the users manipulates regular lists with symbols and keywords,
     ;; without them being plists.
@@ -892,7 +913,8 @@ Examples:
     ;; - either call the PLISTS-TABLE function directly.
     ((and (every #'property-list-p one-or-many-objects)
           plists-p)
-     (apply #'plists-table one-or-many-objects keys))
+     (apply #'plists-table one-or-many-objects keys)
+     'property-lists)
 
     ;; Hedge case:
     ;; a single list of regular elements.
@@ -900,23 +922,34 @@ Examples:
     ;; and they have no rows.
     ((and (not (consp (first one-or-many-objects)))
           (not (property-list-p one-or-many-objects)))
-     (funcall #'table-lists (list one-or-many-objects)))
+     (funcall #'table-lists (list one-or-many-objects))
+     'single)
 
     ;; ALISTs
-    ((and (every #'association-list-p one-or-many-objects))
-     (apply #'alist-table one-or-many-objects keys))
+    ;; It's freaking hard to distinguish a list of normal lists
+    ;; and a list of alists.
+    ;; Why bother?
+    ((and (every #'association-list-p one-or-many-objects)
+          alists)
+     (apply #'alists-table one-or-many-objects keys)
+     'alists)
     ;; one alist
-    ((and (association-list-p one-or-many-objects))
-     (apply #'alist-table one-or-many-objects keys))
+    ((and (association-list-p one-or-many-objects)
+          alist)
+     (apply #'alist-table one-or-many-objects keys)
+     'alist)
 
     (t
-     (apply #'table-lists one-or-many-objects keys))
+     (apply #'table-lists one-or-many-objects keys)
+     'normal-lists)
     ))
 
 (defun vtable-dispatch (one-or-many-objects
                        &rest args
                        &key
                          (plists-p *prefer-plists-in-tables*)
+                         (alist nil)
+                         (alists nil)
                           &ALLOW-OTHER-KEYS
                          )
   "Call the appropriate VTABLE-* function for the type of objects.
@@ -970,6 +1003,15 @@ Examples:
      ;; we call the normal table function.
      (table-lists one-or-many-objects))
 
+    ;; ALISTs
+    ((and (every #'association-list-p one-or-many-objects)
+          alists)
+     (apply #'alists-vtable one-or-many-objects args))
+    ;; one alist
+    ((and (association-list-p one-or-many-objects)
+          alist)
+     (apply #'alist-vtable one-or-many-objects args))
+
     (t
      (apply #'vtable-lists one-or-many-objects args))
     ))
@@ -977,6 +1019,8 @@ Examples:
 (defun table (objects
               &key
                 (plists-p *prefer-plists-in-tables*)
+                (alist nil)
+                (alists nil)
                 (keys nil)
                 (exclude nil)
                 ;; common args:
@@ -1055,6 +1099,8 @@ MARGIN, an integer, is the left margin of the whole table.
 Output goes to STREAM."
   (table-dispatch objects
                   :plists-p plists-p
+                  :alist alist
+                  :alists alists
                   :keys keys
                   :exclude exclude
                   :mark-suffix mark-suffix
@@ -1072,6 +1118,8 @@ Output goes to STREAM."
 (defun vtable (objects
                &key
                  (plists-p *prefer-plists-in-tables*)
+                 (alist nil)
+                 (alists nil)
                  (keys nil)
                  (exclude nil)
                  ;; common args:
@@ -1107,6 +1155,8 @@ Output goes to STREAM."
 "
   (vtable-dispatch objects
                    :plists-p plists-p
+                   :alist alist
+                   :alists alists
                    :keys keys
                    :exclude exclude
                    ;; display options
@@ -1138,8 +1188,11 @@ Output goes to STREAM."
                       (align        :left)
                       (stream       *standard-output*)
                       ;; accept :keys and :exclude.
-                    &ALLOW-OTHER-KEYS
+                    &ALLOW-OTHER-KEYS   ; this one maybe not
                       )
+  "The main table directive that does the heavy lifting. All other table functions eventually call this one.
+
+  This function works with lists of lists of simple elements."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (nb-columns (largest-length objects))
@@ -1343,8 +1396,8 @@ Examples:
     See also PLIST-VTABLE for headers in a column."
   (let ((keys (serapeum:plist-keys plist))
         (values (serapeum:plist-values plist)))
-    (table (list (serapeum:take cols keys)
-                 (serapeum:take cols values))
+    (table-lists (list (serapeum:take cols keys)
+                       (serapeum:take cols values))
            :mark-suffix mark-suffix
            :border-chars border-chars
            :border-style border-style
@@ -1390,7 +1443,7 @@ Examples:
     +---------+---------+
 
   See also PLIST-TABLE for headers in the first row."
-  (table (serapeum:batches plist 2)
+  (table-lists (serapeum:batches plist 2)
          :mark-suffix mark-suffix
          :border-chars border-chars
          :border-style border-style
@@ -1442,8 +1495,8 @@ Examples:
   ;;This could be a parameter.
   (let ((keys (reverse (alexandria:hash-table-keys ht)))
         (values (reverse (alexandria:hash-table-values ht))))
-    (table (list (serapeum:take cols keys)
-                 (serapeum:take cols values))
+    (table-lists (list (serapeum:take cols keys)
+                       (serapeum:take cols values))
            :mark-suffix mark-suffix
            :border-chars border-chars
            :border-style border-style
@@ -1458,12 +1511,14 @@ Examples:
            )))
 
 (defun alist-keys (alist)
-  (loop for (key val) in alist
-        collect key))
+  (when (consp alist)
+    (loop for (key . val) in alist
+          collect key)))
 
 (defun alist-values (alist)
-  (loop for (key val) in alist
-        collect val))
+  (when (consp alist)
+    (loop for (key . val) in alist
+          collect val)))
 
 (defun alist-table (alist &key
                             (cols 1000)
@@ -1520,8 +1575,8 @@ Examples:
   See TABLE."
   (let ((keys (alist-keys alist))
         (values (alist-values alist)))
-    (vtable-lists (cl:print (list (serapeum:take cols keys)
-                                  (serapeum:take cols values)))
+    (vtable-lists (list (serapeum:take cols keys)
+                        (serapeum:take cols values))
                   :mark-suffix mark-suffix
                   :border-chars border-chars
                   :border-style border-style
@@ -1570,7 +1625,7 @@ Examples:
            :stream stream
            )))
 
-(defun alist-vtable (alist &key
+(defun alists-vtable (alists-list &key
                             (cols 1000)
                             (mark-suffix  #\*)
                             (border-chars "-|+")
@@ -1585,13 +1640,13 @@ Examples:
                             (stream       *standard-output*)
                     &ALLOW-OTHER-KEYS
                       )
-  "Print the alist ALIST as a vtable: the keys as the headers row, the values as one row below.
+  "Print the list of alists as a vtable.
 
   See VTABLE."
-  (let ((keys (alist-keys alist))
-        (values (alist-values alist)))
-    (vtable (list (serapeum:take cols keys)
-                 (serapeum:take cols values))
+  (let ((keys (alist-keys (first alists-list)))
+        (values (mapcar #'alist-values alists-list)))
+    (vtable-lists (cons keys values)
+                 :cols cols
            :mark-suffix mark-suffix
            :border-chars border-chars
            :border-style border-style
@@ -1637,9 +1692,10 @@ Examples:
     +---------+---------+
 
   See also HT-TABLE for headers in the first row."
-  (table (reverse (serapeum:batches
-                   (alexandria:hash-table-plist ht)
-                   2))
+  ;; TODO: exclude keys
+  (table-lists (reverse (serapeum:batches
+                         (alexandria:hash-table-plist ht)
+                         2))
          :mark-suffix mark-suffix
          :border-chars border-chars
          :border-style border-style
@@ -1693,7 +1749,7 @@ Examples:
   ;;This could be a parameter.
   (let* ((keys (reverse (alexandria:hash-table-keys (first ht-list))))
          (rows (collect-hash-tables-values keys ht-list)))
-    (table (cons keys rows)
+    (table-lists (cons keys rows)
            :mark-suffix mark-suffix
            :border-chars border-chars
            :border-style border-style
@@ -1714,6 +1770,10 @@ Examples:
 
 (defun hts-vtable (ht-list
                    &key
+                     ;;TODO:
+                     ;; (keys nil)
+                     ;; (exclude nil)
+                     ;; all:
                      (mark-suffix  #\*)
                      (border-chars "-|+")
                      (border-style :default)
@@ -1750,7 +1810,7 @@ Examples:
   (let* ((keys (reverse (alexandria:hash-table-keys (first ht-list))))
          (values (collect-hash-tables-values keys ht-list)))
 
-    (vtable (cons keys values)
+    (vtable-lists (cons keys values)
             :stream stream
             :mark-suffix mark-suffix
             :border-chars border-chars
@@ -1822,7 +1882,7 @@ Examples:
                 (uiop:ensure-list exclude)))
          (values (collect-plists-values keys plist-list)))
 
-    (table (cons keys values)
+    (table-lists (cons keys values)
            :stream stream
            :mark-suffix mark-suffix
            :border-chars border-chars
@@ -1854,6 +1914,7 @@ Examples:
                         (column-width *column-width*)
                         (align        :left)
                         (stream       *standard-output*)
+                        &ALLOW-OTHER-KEYS
                         )
   "Print a list of plists as a VTABLE.
 
