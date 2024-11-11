@@ -41,7 +41,9 @@
               #:plist-table
               #:plists-table
               #:plists-vtable
-              #:*prefer-plists-in-tables*)
+              #:*prefer-plists-in-tables*
+              #:alists-table
+              #:alist-table)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -825,6 +827,31 @@ Output goes to STREAM."
 ;; Tables
 ;;;;;;;;;;;;
 
+;; trivial-types
+(defmacro %proper-list-p (var &optional (element-type '*))
+  `(loop
+     (typecase ,var
+       (null (return t))
+       (cons (if (or ,(eq element-type '*)
+                     (typep (car ,var) ,element-type))
+                 (setq ,var (cdr ,var))
+                 (return)))
+       (t    (return)))))
+
+;; trivial-types
+(defun association-list-p (var)
+  "Returns true if OBJECT is an association list.
+
+Examples:
+
+    (association-list-p 1) => NIL
+    (association-list-p '(1 2 3)) => NIL
+    (association-list-p nil) => T
+    (association-list-p '((foo))) => T
+    (association-list-p '((:a . 1) (:b . 2))) => T"
+  ;; (declare (optimize . #.*standard-optimize-qualities*))
+  (%proper-list-p var 'cons))
+
 (defun table-dispatch (one-or-many-objects
                        &rest keys
                        &key
@@ -874,6 +901,13 @@ Output goes to STREAM."
     ((and (not (consp (first one-or-many-objects)))
           (not (property-list-p one-or-many-objects)))
      (funcall #'table-lists (list one-or-many-objects)))
+
+    ;; ALISTs
+    ((and (every #'association-list-p one-or-many-objects))
+     (apply #'alist-table one-or-many-objects keys))
+    ;; one alist
+    ((and (association-list-p one-or-many-objects))
+     (apply #'alist-table one-or-many-objects keys))
 
     (t
      (apply #'table-lists one-or-many-objects keys))
@@ -1259,7 +1293,7 @@ Examples:
 "
   ;; first object is the keys,
   ;; the rest are lists of values.
-  (table (invert-plists-matrix objects)
+  (table-lists (invert-plists-matrix objects)
          :mark-suffix mark-suffix
          :border-chars border-chars
          :border-style border-style
@@ -1409,6 +1443,154 @@ Examples:
   (let ((keys (reverse (alexandria:hash-table-keys ht)))
         (values (reverse (alexandria:hash-table-values ht))))
     (table (list (serapeum:take cols keys)
+                 (serapeum:take cols values))
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
+(defun alist-keys (alist)
+  (loop for (key val) in alist
+        collect key))
+
+(defun alist-values (alist)
+  (loop for (key val) in alist
+        collect val))
+
+(defun alist-table (alist &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                    &ALLOW-OTHER-KEYS
+                      )
+  "Print the alist ALIST as a table: the keys as the headers row, the values as one row below.
+
+  See TABLE."
+  (let ((keys (alist-keys alist))
+        (values (alist-values alist)))
+    (table-lists (list (serapeum:take cols keys)
+                 (serapeum:take cols values))
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
+(defun alist-vtable (alist &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                    &ALLOW-OTHER-KEYS
+                      )
+  "Print the alist ALIST as a table: the keys as the headers row, the values as one row below.
+
+  See TABLE."
+  (let ((keys (alist-keys alist))
+        (values (alist-values alist)))
+    (vtable-lists (cl:print (list (serapeum:take cols keys)
+                                  (serapeum:take cols values)))
+                  :mark-suffix mark-suffix
+                  :border-chars border-chars
+                  :border-style border-style
+                  :header-style header-style
+                  :cell-style cell-style
+                  :mark-style mark-style
+                  :col-header col-header
+                  :margin margin
+                  :column-width column-width
+                  :align align
+                  :stream stream
+                  )))
+
+(defun alists-table (alists-list &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                    &ALLOW-OTHER-KEYS
+                      )
+  "Print the list of alists as a table.
+
+  See TABLE."
+  (let ((keys (alist-keys (first alists-list)))
+        (values (mapcar #'alist-values alists-list)))
+    (table-lists (cons keys values)
+                 :cols cols
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
+(defun alist-vtable (alist &key
+                            (cols 1000)
+                            (mark-suffix  #\*)
+                            (border-chars "-|+")
+                            (border-style :default)
+                            (header-style :default)
+                            (cell-style   :default)
+                            (mark-style   :default)
+                            (col-header   nil)
+                            (margin       0)
+                            (column-width *column-width*)
+                            (align        :left)
+                            (stream       *standard-output*)
+                    &ALLOW-OTHER-KEYS
+                      )
+  "Print the alist ALIST as a vtable: the keys as the headers row, the values as one row below.
+
+  See VTABLE."
+  (let ((keys (alist-keys alist))
+        (values (alist-values alist)))
+    (vtable (list (serapeum:take cols keys)
                  (serapeum:take cols values))
            :mark-suffix mark-suffix
            :border-chars border-chars
