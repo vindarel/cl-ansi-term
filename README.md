@@ -29,14 +29,20 @@ It's also possible to disable all effects and coloration.
 * ordered lists: `o-list`
 * tables: `table`
 
-and (new and in testing)
+Hooks are applied before and after each printing primitive, see our documentation.
+
+and (new as of November, 2024 and in testing)
 
 * vertical space: `vspace`
 * titles in banners: `banner`
-* pretty-print plists: `plist-table` and `plist-vtable`
 
+print lists of plists and hash-tables:
 
-Hooks are applied before and after each printing primitive, see our documentation.
+* pretty-print a list of plists in a table: `plists-table` and `plists-vtable`
+* pretty-print a list of hash-tables in a table: `hts-table` and `hts-vtable`
+* pretty-print a single plist: `plist-table` and `plist-vtable`
+* pretty-print a single hash-table: `ht-table` and `ht-vtable`
+
 
 ## Installation
 
@@ -200,6 +206,79 @@ Print PLIST as a table, where the first column is the keys, the second column is
 ### Pretty-print a hash-table: `ht-table` and `ht-vtable`
 
 They have the same signature and output than the functions for plist above.
+
+### Pretty-print a list of hash-tables: `hts-table` and `hts-vtable`
+
+`hts-table`:
+
+Print the list of HASH-TABLES as a vertical table, where the first column is the keys,
+the other columns are the values of each hash-table.
+
+Example:
+
+
+~~~lisp
+(hts-vtable (list (dict :a 1 :b 2 :c 3)
+                  (dict :a 10 :b 20 :c 30)))
+~~~
+
+`hts-vtable` is similar, only it prints the keys vertically, in the first column.
+
+
+### Pretty-print a list of plists: `PLISTS-TABLE` and `PLISTS-VTABLE`
+
+`plists-table`:
+
+Print a list of plists as a TABLE.
+
+The first row shows the plist keys, taken from the first plist object.
+All other rows show the values of all the plist objects.
+
+If KEYS is given, the table will show only the values, and as many columns, for these keys.
+If EXCLUDE is given, the plist values and associated columns are ignored.
+
+Example:
+
+```
+(plists-table '((:A 1 :B 2 :C 3) (:A 10 :B 20 :C 30)))
+
+=>
+
++---------+---------+---------+
+|A        |B        |C        |
++---------+---------+---------+
+|1        |2        |3        |
++---------+---------+---------+
+|10       |20       |30       |
++---------+---------+---------+
+```
+
+
+`plists-vtable`
+
+Print a list of plists as a VTABLE.
+
+The first colum (and not row) shows the plist keys, taken from the first plist object.
+All other rows show the values of all the plist objects.
+
+If KEYS is given, the table will show only the values, and as many rows, for these keys.
+If EXCLUDE is given, the plist values and associated rows are ignored.
+
+Example:
+
+```
+(plists-vtable '((:A 1 :B 2 :C 3) (:A 10 :B 20 :C 30)))
+
+=>
+
++---------+---------+---------+
+|A        |1        |10       |
++---------+---------+---------+
+|B        |2        |20       |
++---------+---------+---------+
+|C        |3        |30       |
++---------+---------+---------+
+```
 
 
 ### Stylesheets and colorized text

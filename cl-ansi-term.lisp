@@ -1319,9 +1319,17 @@ Output goes to STREAM."
         collect (loop for key in (uiop:ensure-list keys)
                       collect (getf plist key))))
 
+(defun remove-keys (keys exclude-list)
+  ;; don't use set-difference to preserve order.
+  (remove-if (lambda (it) (find it exclude-list)) keys))
+
 (defun plists-table (plist-list
                      &key
+                       ;; specific options:
                        (keys nil)
+                       (exclude nil)
+
+                       ;; common args:
                        (mark-suffix  #\*)
                        (border-chars "-|+")
                        (border-style :default)
@@ -1341,6 +1349,7 @@ Output goes to STREAM."
   All other rows show the values of all the plist objects.
 
   If KEYS is given, the table will show only the values, and as many columns, for these keys.
+  If EXCLUDE is given, the plist values and associated columns are ignored.
 
   Example:
 
@@ -1356,8 +1365,10 @@ Output goes to STREAM."
     |10       |20       |30       |
     +---------+---------+---------+
 "
-  (let* ((keys (or keys
-                   (serapeum:plist-keys (first plist-list))))
+  (let* ((keys (remove-keys
+                (or (uiop:ensure-list keys)
+                    (serapeum:plist-keys (first plist-list)))
+                (uiop:ensure-list exclude)))
          (values (collect-plists-values keys plist-list)))
 
     (table (cons keys values)
@@ -1379,6 +1390,7 @@ Output goes to STREAM."
                       &key
                         ;; specific argument:
                         (keys nil)
+                        (exclude nil)
                         ;; common args:
                         (mark-suffix  #\*)
                         (border-chars "-|+")
@@ -1398,6 +1410,7 @@ Output goes to STREAM."
   All other rows show the values of all the plist objects.
 
   If KEYS is given, the table will show only the values, and as many rows, for these keys.
+  If EXCLUDE is given, the plist values and associated rows are ignored.
 
   Example:
 
@@ -1413,8 +1426,10 @@ Output goes to STREAM."
     |C        |3        |30       |
     +---------+---------+---------+
 "
-  (let* ((keys (or keys
-                   (serapeum:plist-keys (first plist-list))))
+  (let* ((keys (remove-keys
+                (or (uiop:ensure-list keys)
+                    (serapeum:plist-keys (first plist-list)))
+                (uiop:ensure-list exclude)))
          (values (collect-plists-values keys plist-list)))
 
     (vtable (cons keys values)
