@@ -27,7 +27,25 @@ It's also possible to disable all effects and coloration.
 * progress bars (see also [progressons](https://github.com/vindarel/progressons))
 * unordered lists: `u-list`
 * ordered lists: `o-list`
-* tables: `table`
+
+Print tables:
+
+* tables: `table` and `vtable` (headers in the first column)
+  * accepts:
+    * lists of lists
+    * lists of hash-tables
+    * lists of property-lists (see the `:plists-p t` argument and the `plists-table` function)
+    * a single element
+
+```
++---------+---------+---------+
+|A        |1        |1        |
++---------+---------+---------+
+|B        |2        |2        |
++---------+---------+---------+
+|C        |3        |3        |
++---------+---------+---------+
+```
 
 Hooks are applied before and after each printing primitive, see our documentation.
 
@@ -35,13 +53,6 @@ and (new as of November, 2024 and in testing)
 
 * vertical space: `vspace`
 * titles in banners: `banner`
-
-print lists of plists and hash-tables:
-
-* pretty-print a list of plists in a table: `plists-table` and `plists-vtable`
-* pretty-print a list of hash-tables in a table: `hts-table` and `hts-vtable`
-* pretty-print a single plist: `plist-table` and `plist-vtable`
-* pretty-print a single hash-table: `ht-table` and `ht-vtable`
 
 
 ## Installation

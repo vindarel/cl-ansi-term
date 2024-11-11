@@ -40,7 +40,8 @@
               #:plist-vtable
               #:plist-table
               #:plists-table
-              #:plists-vtable)
+              #:plists-vtable
+              #:*prefer-plists-in-tables*)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -1260,6 +1261,7 @@ Examples:
                             (column-width *column-width*)
                             (align        :left)
                             (stream       *standard-output*)
+                            &ALLOW-OTHER-KEYS
                             )
   "Print PLIST as a table: the plist keys as the headers row, the plist values as one row below.
 
@@ -1310,6 +1312,7 @@ Examples:
                        (column-width *column-width*)
                        (align        :left)
                        (stream       *standard-output*)
+                            &ALLOW-OTHER-KEYS
                        )
   "Print PLIST as a table, where the first column is the keys, the second column is the value.
 
@@ -1355,6 +1358,7 @@ Examples:
                       (column-width *column-width*)
                       (align        :left)
                       (stream       *standard-output*)
+                            &ALLOW-OTHER-KEYS
                       )
   "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
 
@@ -1407,6 +1411,7 @@ Examples:
                        (column-width *column-width*)
                        (align        :left)
                        (stream       *standard-output*)
+                  &ALLOW-OTHER-KEYS
                        )
   "Print the hash-table HT as a table, where the first column is the keys, the second column is the value.
 
@@ -1454,6 +1459,7 @@ Examples:
                             (column-width *column-width*)
                             (align        :left)
                             (stream       *standard-output*)
+                  &ALLOW-OTHER-KEYS
                             )
   "Print the list of hash-tables HT-LIST as a table: the keys as the first row, the values of each hash-table as one row below.
 
@@ -1513,6 +1519,7 @@ Examples:
                      (column-width *column-width*)
                      (align        :left)
                      (stream       *standard-output*)
+                   &ALLOW-OTHER-KEYS
                      )
   "Print the list of HASH-TABLES as a vertical table, where the first column is the keys,
   the other columns are the values of each hash-table.
