@@ -949,14 +949,12 @@ Output goes to STREAM."
   nil)
 
 (defun invert-plists-matrix (objects)
-  (loop :with length = (length (first objects))
-        :with grid = (loop :repeat length :collect (make-list (length objects)))
+  (loop :with content-length = (length (first objects))
+        :with grid = (loop :repeat content-length :collect (make-list (length objects)))
         :for obj :in objects
         :for i := 0 :then (incf i)
-        ;; :do (format t "~&col ~a~& grid? ~s" i grid)
-        :do (loop :for j :from 0 :to (1- length)
+        :do (loop :for j :from 0 :to (1- content-length)
                   :for row := (nth j grid)
-                  ;; :do (format t "row ~a row is ~a - " j row)
                   :do  (setf (nth i row) (nth j obj)))
         :finally (return grid)))
 
@@ -1108,19 +1106,19 @@ Output goes to STREAM."
          ))
 
 (defun ht-table (ht &key
-                            (cols 1000)
-                            (mark-suffix  #\*)
-                            (border-chars "-|+")
-                            (border-style :default)
-                            (header-style :default)
-                            (cell-style   :default)
-                            (mark-style   :default)
-                            (col-header   nil)
-                            (margin       0)
-                            (column-width *column-width*)
-                            (align        :left)
-                            (stream       *standard-output*)
-                            )
+                      (cols 1000)
+                      (mark-suffix  #\*)
+                      (border-chars "-|+")
+                      (border-style :default)
+                      (header-style :default)
+                      (cell-style   :default)
+                      (mark-style   :default)
+                      (col-header   nil)
+                      (margin       0)
+                      (column-width *column-width*)
+                      (align        :left)
+                      (stream       *standard-output*)
+                      )
   "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
 
   COLS allows to limit the number of columns.
@@ -1314,4 +1312,121 @@ Output goes to STREAM."
             :column-width column-width
             :align align
             ;; :cols cols                  ; unused in table
+            )))
+
+(defun collect-plists-values (keys plists)
+  (loop for plist in plists
+        collect (loop for key in (uiop:ensure-list keys)
+                      collect (getf plist key))))
+
+(defun plists-table (plist-list
+                     &key
+                       (keys nil)
+                       (mark-suffix  #\*)
+                       (border-chars "-|+")
+                       (border-style :default)
+                       (header-style :default)
+                       (cell-style   :default)
+                       (mark-style   :default)
+                       (col-header   nil)
+                       ;; (cols 1000)
+                       (margin       0)
+                       (column-width *column-width*)
+                       (align        :left)
+                       (stream       *standard-output*)
+                       )
+  "Print a list of plists as a TABLE.
+
+  The first row shows the plist keys, taken from the first plist object.
+  All other rows show the values of all the plist objects.
+
+  If KEYS is given, the table will show only the values, and as many columns, for these keys.
+
+  Example:
+
+  (plists-table '((:A 1 :B 2 :C 3) (:A 10 :B 20 :C 30)))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+    |10       |20       |30       |
+    +---------+---------+---------+
+"
+  (let* ((keys (or keys
+                   (serapeum:plist-keys (first plist-list))))
+         (values (collect-plists-values keys plist-list)))
+
+    (table (cons keys values)
+           :stream stream
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           ;; :cols cols                  ; unused in table
+           )))
+
+(defun plists-vtable (plist-list
+                      &key
+                        ;; specific argument:
+                        (keys nil)
+                        ;; common args:
+                        (mark-suffix  #\*)
+                        (border-chars "-|+")
+                        (border-style :default)
+                        (header-style :default)
+                        (cell-style   :default)
+                        (mark-style   :default)
+                        (col-header   nil)
+                        (margin       0)
+                        (column-width *column-width*)
+                        (align        :left)
+                        (stream       *standard-output*)
+                        )
+  "Print a list of plists as a VTABLE.
+
+  The first colum (and not row) shows the plist keys, taken from the first plist object.
+  All other rows show the values of all the plist objects.
+
+  If KEYS is given, the table will show only the values, and as many rows, for these keys.
+
+  Example:
+
+  (plists-vtable '((:A 1 :B 2 :C 3) (:A 10 :B 20 :C 30)))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |1        |10       |
+    +---------+---------+---------+
+    |B        |2        |20       |
+    +---------+---------+---------+
+    |C        |3        |30       |
+    +---------+---------+---------+
+"
+  (let* ((keys (or keys
+                   (serapeum:plist-keys (first plist-list))))
+         (values (collect-plists-values keys plist-list)))
+
+    (vtable (cons keys values)
+            :stream stream
+            :mark-suffix mark-suffix
+            :border-chars border-chars
+            :border-style border-style
+            :header-style header-style
+            :cell-style cell-style
+            :mark-style mark-style
+            :col-header col-header
+            :margin margin
+            :column-width column-width
+            :align align
             )))
