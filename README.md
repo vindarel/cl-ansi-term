@@ -91,9 +91,18 @@ Quick snippets:
 + TWO
 ~~~
 
-### Print tables: `table`
+### Print tables: `table` and `vtable`
+
+`table` and `vtable` accept:
+
+- a list of regular lists, composed of string-designators
+- a list of hash-tables
+- a list of property-lists
+  - use `:plists-p t` or `(setf *prefer-plists-in-tables* t)` to help the function distinguish between a regular list of lists
+- a single hash-table or a single property list.
 
 ~~~lisp
+;; The first list, headers, as the first row:
 (term:table (list '("name" "age")
                   '("me" "7")))
 +---------+---------+
@@ -102,8 +111,63 @@ Quick snippets:
 |me       |7        |
 +---------+---------+
 
-;; A long cell is truncated to :column-width, 10 by default.
+;; Headers as the first column:
+(term:vtable (list '("name" "age")
+                         '("me" "7")))
++---------+---------+
+|name     |me       |
++---------+---------+
+|age      |7        |
++---------+---------+
+~~~
 
+Also print lists of hash-tables or lists of plists:
+
+~~~lisp
+(defparameter *my-plist* '(:a 1 :b 2 :c 3))
+(table (list *my-plist* *my-plist*) :plists-p t)
++---------+---------+---------+
+|A        |B        |C        |
++---------+---------+---------+
+|1        |2        |3        |
++---------+---------+---------+
+|1        |2        |3        |
++---------+---------+---------+
+
+(vtable (list *my-plist* *my-plist*) :plists-p t)
++---------+---------+---------+
+|A        |1        |1        |
++---------+---------+---------+
+|B        |2        |2        |
++---------+---------+---------+
+|C        |3        |3        |
++---------+---------+---------+
+~~~
+
+See also `hts-table`, `hts-vtable`, `plists-table` and `plists-table`.
+
+You can choose a set of keys (headers) or exclude some of them:
+
+- `:keys` is a list of keys to display
+- `:exclude` is a list of keys to not display.
+
+*(those can be a single element)*
+
+~~~lisp
+(table (list plist plist) :plists-p t :exclude :c)
+=>
++---------+---------+
+|A        |B        |
++---------+---------+
+|1        |2        |
++---------+---------+
+|1        |2        |
++---------+---------+
+~~~
+
+A long cell is truncated to :column-width, 10 by default.
+
+~~~lisp
 (term:table '(("name" "age" "email")
               ("me" 7 "some@blah")
               ("me" 7 "some@with-some-longer.email")))
@@ -114,9 +178,11 @@ Quick snippets:
 +---------+---------+---------+
 |me       |7        |some@w(…)|
 +---------+---------+---------+
+~~~
 
-;; Each column can have a different length.
+Each column can have a different length:
 
+~~~lisp
 (term:table '(("name" "age" "email")
               ("me" 7 "some@blah")
               ("me" 7 "some@with-some-longer.email"))
@@ -161,124 +227,6 @@ Print a title in between 2 horizontal lines, with vertical space before and afte
 
 ```
 
-### Pretty-print a plist: `plist-table` and `plist-vtable`
-
-`plist-table`:
-
-Print PLIST as a table: the plist keys as the headers row, the plist values as one row below.
-
-COLS allows to limit the number of columns.
-
-Other arguments are passed to the TABLE function.
-
-Example:
-
-```
-    (plist-table '(:a 1 :b 2 :c 3))
-
-  =>
-
-    +---------+---------+---------+
-    |A        |B        |C        |
-    +---------+---------+---------+
-    |1        |2        |3        |
-    +---------+---------+---------+
-```
-
-`plist-vtable`:
-
-Print PLIST as a table, where the first column is the keys, the second column is the value.
-
-  Example:
-
-    (plist-vtable '(:a 1 :b 2 :c 3))
-
-  =>
-
-    +---------+---------+
-    |A        |1        |
-    +---------+---------+
-    |B        |2        |
-    +---------+---------+
-    |C        |3        |
-    +---------+---------+
-
-### Pretty-print a hash-table: `ht-table` and `ht-vtable`
-
-They have the same signature and output than the functions for plist above.
-
-### Pretty-print a list of hash-tables: `hts-table` and `hts-vtable`
-
-`hts-table`:
-
-Print the list of HASH-TABLES as a vertical table, where the first column is the keys,
-the other columns are the values of each hash-table.
-
-Example:
-
-
-~~~lisp
-(hts-vtable (list (dict :a 1 :b 2 :c 3)
-                  (dict :a 10 :b 20 :c 30)))
-~~~
-
-`hts-vtable` is similar, only it prints the keys vertically, in the first column.
-
-
-### Pretty-print a list of plists: `PLISTS-TABLE` and `PLISTS-VTABLE`
-
-`plists-table`:
-
-Print a list of plists as a TABLE.
-
-The first row shows the plist keys, taken from the first plist object.
-All other rows show the values of all the plist objects.
-
-If KEYS is given, the table will show only the values, and as many columns, for these keys.
-If EXCLUDE is given, the plist values and associated columns are ignored.
-
-Example:
-
-```
-(plists-table '((:A 1 :B 2 :C 3) (:A 10 :B 20 :C 30)))
-
-=>
-
-+---------+---------+---------+
-|A        |B        |C        |
-+---------+---------+---------+
-|1        |2        |3        |
-+---------+---------+---------+
-|10       |20       |30       |
-+---------+---------+---------+
-```
-
-
-`plists-vtable`
-
-Print a list of plists as a VTABLE.
-
-The first colum (and not row) shows the plist keys, taken from the first plist object.
-All other rows show the values of all the plist objects.
-
-If KEYS is given, the table will show only the values, and as many rows, for these keys.
-If EXCLUDE is given, the plist values and associated rows are ignored.
-
-Example:
-
-```
-(plists-vtable '((:A 1 :B 2 :C 3) (:A 10 :B 20 :C 30)))
-
-=>
-
-+---------+---------+---------+
-|A        |1        |10       |
-+---------+---------+---------+
-|B        |2        |20       |
-+---------+---------+---------+
-|C        |3        |30       |
-+---------+---------+---------+
-```
 
 
 ### Stylesheets and colorized text
@@ -290,8 +238,43 @@ Please see our online documentation.
 #### `table`
 
 ```
-Print a table filling cells with OBJECTS. OBJECTS must be a list of list
-designators with equal lengths.
+Print a table filling cells with OBJECTS.
+
+  OBJECTS can be:
+
+  - a list of lists of string designators with equal lengths
+.   - generally, the first list is a list of headers.
+  - a list of hash-tables
+    - the table displays the first hash-table keys and all the hash-tables values.
+    - see also HTS-TABLE
+  - a list of property-lists
+    - the table prints the keys and all the plists' values
+    - to help the TABLE understand the arguments are plists
+      and not regular lists, set the PLISTS-P key argument to T
+      or the variable *prefer-plists-in-tables* to T.
+    - see also PLISTS-TABLE
+  - a single hash-table
+  - a single plist.
+
+  KEYS is a list of keys to display (only applicable for hash-tables and plists). The associated rows or columns will be displayed.
+
+  EXCLUDE is a list of keys to NOT display (only applicable for hash-tables and plists).
+Example:
+
+   (table '((:A :B :C) (1 2 3)))
+
+=>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+    |10       |20       |30       |
+    +---------+---------+---------+
+
+
+See VTABLE to print the table vertically.
 
 If BORDER-STYLE is NIL, no border will be
 printed, otherwise BORDER-STYLE is expected to be a keyword that denotes

@@ -39,11 +39,8 @@
               #:vtable
               #:plist-vtable
               #:plist-table
-              #:ht-vtable
-              #:ht-table
-              #:hts-vtable
-              #:hts-table
-              )
+              #:plists-table
+              #:plists-vtable)
   (:shadow    #:print))
 
 (in-package #:cl-ansi-term)
@@ -145,6 +142,11 @@ variants of 8 basic colors).")
     (:overlined . 53))
   "All supported rendition effects. Some of them are hardly ever supported
 by real-world terminals.")
+
+(defvar *prefer-plists-in-tables* nil
+  "If non-nil, if the TABLE function can't clearly distinguish
+  between a list of plists and a list of regular lists,
+  it will give precedence to displaying the data as plists.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
@@ -818,8 +820,106 @@ Output goes to STREAM."
       (perform-hook :after-printing)
       nil)))
 
+;;;;;;;;;;;;
+;; Tables
+;;;;;;;;;;;;
+
+(defun table-dispatch (one-or-many-objects
+                       &rest keys
+                       &key
+                         (plists-p *prefer-plists-in-tables*)
+                          &ALLOW-OTHER-KEYS
+                         )
+  "Call the appropriate TABLE-* function for the type of objects.
+
+  ONE-OR-MANY-OBJECTS can be:
+
+  - a singe plist
+  - a singe hash-table
+  - a list of hash-tables
+  - a list of property lists: in that case, we can not be sure
+   that the user manipulates a list of plists or a list of regular lists with
+   symbols and keywords.
+   Set the PLISTS-P key argument to T or call the PLISTS-TABLE function directly.
+  - a list of lists.
+  "
+  (remf keys :plists-p) ; either add the key arg to all functions, either delete it. Destructive.
+  (cond
+    ;; One HT.
+    ((hash-table-p one-or-many-objects)
+     (apply #'ht-table one-or-many-objects keys))
+    ;; A list of HTs.
+    ((and (consp one-or-many-objects)
+          (hash-table-p (first one-or-many-objects)))
+     (apply #'hts-table one-or-many-objects keys))
+    ;; One plist.
+    ((property-list-p one-or-many-objects)
+     (apply #'plist-table one-or-many-objects keys))
+    ;; Can be distinguish between a list of plists and a list of lists?
+    ;; Maybe the users manipulates regular lists with symbols and keywords,
+    ;; without them being plists.
+    ;;
+    ;; For many plists:
+    ;; - either set the :plists-p key argument to T
+    ;; - either call the PLISTS-TABLE function directly.
+    ((and (every #'property-list-p one-or-many-objects)
+          plists-p)
+     (apply #'plists-table one-or-many-objects keys))
+    (t
+     (apply #'table-lists one-or-many-objects keys))
+    ))
+
+(defun vtable-dispatch (one-or-many-objects
+                       &rest args
+                       &key
+                         (plists-p *prefer-plists-in-tables*)
+                          &ALLOW-OTHER-KEYS
+                         )
+  "Call the appropriate VTABLE-* function for the type of objects.
+
+  ONE-OR-MANY-OBJECTS can be:
+
+  - a singe plist
+  - a singe hash-table
+  - a list of hash-tables
+  - a list of property lists: in that case, we can not be sure
+   that the user manipulates a list of plists or a list of regular lists with
+   symbols and keywords.
+   Set the PLISTS-P key argument to T or call the PLISTS-TABLE function directly.
+  - a list of lists.
+  "
+  (remf args :plists-p) ; either add the key arg to all functions, either delete it. Destructive.
+  (cond
+    ;; One HT.
+    ((hash-table-p one-or-many-objects)
+     (apply #'ht-vtable one-or-many-objects args))
+    ;; A list of HTs.
+    ((and (consp one-or-many-objects)
+          (hash-table-p (first one-or-many-objects)))
+     (apply #'hts-vtable one-or-many-objects args))
+    ;; One plist.
+    ((property-list-p one-or-many-objects)
+     (apply #'plist-vtable one-or-many-objects args))
+    ;; Can be distinguish between a list of plists and a list of lists?
+    ;; Maybe the users manipulates regular lists with symbols and keywords,
+    ;; without them being plists.
+    ;;
+    ;; For many plists:
+    ;; - either set the :plists-p key argument to T
+    ;; - either call the PLISTS-TABLE function directly.
+    ((and (every #'property-list-p one-or-many-objects)
+          plists-p)
+     (apply #'plists-vtable one-or-many-objects args))
+    (t
+     (apply #'vtable-lists one-or-many-objects args))
+    ))
+
 (defun table (objects
               &key
+                (plists-p *prefer-plists-in-tables*)
+                (keys nil)
+                (exclude nil)
+                ;; common args:
                 (mark-suffix  #\*)
                 (border-chars "-|+")
                 (border-style :default)
@@ -832,11 +932,27 @@ Output goes to STREAM."
                 (column-width *column-width*)
                 (align        :left)
                 (stream       *standard-output*))
-  "Print a table filling cells with OBJECTS. OBJECTS must be a list of string
-designators with equal lengths.
+  "Print a table filling cells with OBJECTS.
 
-  To print a list of hash-tables, see HTS-TABLE.
-  To print a list of plists, see PLIST-TABLE.
+  OBJECTS can be:
+
+  - a list of lists of string designators with equal lengths
+.   - generally, the first list is a list of headers.
+  - a list of hash-tables
+    - the table displays the first hash-table keys and all the hash-tables values.
+    - see also HTS-TABLE
+  - a list of property-lists
+    - the table prints the keys and all the plists' values
+    - to help the TABLE understand the arguments are plists
+      and not regular lists, set the PLISTS-P key argument to T
+      or the variable *prefer-plists-in-tables* to T.
+    - see also PLISTS-TABLE
+  - a single hash-table
+  - a single plist.
+
+  KEYS is a list of keys to display (only applicable for hash-tables and plists). The associated rows or columns will be displayed.
+
+  EXCLUDE is a list of keys to NOT display (only applicable for hash-tables and plists).
 
 Example:
 
@@ -877,6 +993,93 @@ ALIGN controls the alignmet inside a cell. It can take the values :LEFT (default
 MARGIN, an integer, is the left margin of the whole table.
 
 Output goes to STREAM."
+  (table-dispatch objects
+                  :plists-p plists-p
+                  :keys keys
+                  :exclude exclude
+                  :mark-suffix mark-suffix
+                  :border-chars border-chars
+                  :border-style border-style
+                  :header-style header-style
+                  :cell-style cell-style
+                  :mark-style mark-style
+                  :col-header col-header
+                  :margin margin
+                  :column-width column-width
+                  :align align
+                  :stream stream))
+
+(defun vtable (objects
+               &key
+                 (plists-p *prefer-plists-in-tables*)
+                 (keys nil)
+                 (exclude nil)
+                 ;; common args:
+                 (mark-suffix  #\*)
+                 (border-chars "-|+")
+                 (border-style :default)
+                 (header-style :default)
+                 (cell-style   :default)
+                 (mark-style   :default)
+                 (col-header   nil)
+                 ;; (cols 1000)
+                 (margin       0)
+                 (column-width *column-width*)
+                 (align        :left)
+                 (stream       *standard-output*))
+  "Print a vertical table.
+
+  See TABLE for all options and the accepted OBJECTS types.
+
+  Example:
+
+   (vtable '((:A :B :C) (1 2 3)))
+
+=>
+
+    +---------+---------+
+    |A        |1        |
+    +---------+---------+
+    |B        |2        |
+    +---------+---------+
+    |C        |3        |
+    +---------+---------+
+"
+  (vtable-dispatch objects
+                   :plists-p plists-p
+                   :keys keys
+                   :exclude exclude
+                   ;; display options
+                   :mark-suffix mark-suffix
+                   :border-chars border-chars
+                   :border-style border-style
+                   :header-style header-style
+                   :cell-style cell-style
+                   :mark-style mark-style
+                   :col-header col-header
+                   :margin margin
+                   :column-width column-width
+                   :align align
+                   :stream stream))
+
+
+(defun table-lists (objects
+                    &key
+                      (mark-suffix  #\*)
+                      (border-chars "-|+")
+                      (border-style :default)
+                      (header-style :default)
+                      (cell-style   :default)
+                      (mark-style   :default)
+                      (col-header   nil)
+                      ;; (cols 1000)
+                      (margin       0)
+                      (column-width *column-width*)
+                      (align        :left)
+                      (stream       *standard-output*)
+                      ;; accept :keys and :exclude.
+                    &ALLOW-OTHER-KEYS
+                      )
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (nb-columns (largest-length objects))
@@ -948,7 +1151,39 @@ Output goes to STREAM."
   (perform-hook :after-printing stream)
   nil)
 
+;; From trivial-types.
+(defun property-list-p (object)
+  "Returns true if OBJECT is a property list.
+
+Examples:
+
+    (property-list-p 1) => NIL
+    (property-list-p '(1 2 3)) => NIL
+    (property-list-p '(foo)) => NIL
+    (property-list-p nil) => T
+    (property-list-p '(foo 1)) => T
+    (property-list-p '(:a 1 :b 2)) => T"
+  ;; (declare (optimize . #.*standard-optimize-qualities*))
+  (typecase object
+    (null t)
+    (cons
+     (loop
+       (if (null object)
+           (return t)
+           (let ((key (car object))
+                 (next (cdr object)))
+             (if (or (not (symbolp key))
+                     (not (consp next)))
+                 (return)
+                 (setq object (cdr next)))))))))
+
+
 (defun invert-plists-matrix (objects)
+  "Transform a list of rows to a list of columns.
+
+  (invert-plists-matrix '((a b c) (1 2 3)))
+  ;; => ((A 1) (B 2) (C 3))
+  "
   (loop :with content-length = (length (first objects))
         :with grid = (loop :repeat content-length :collect (make-list (length objects)))
         :for obj :in objects
@@ -958,19 +1193,21 @@ Output goes to STREAM."
                   :do  (setf (nth i row) (nth j obj)))
         :finally (return grid)))
 
-(defun vtable (objects &key
-                         ;; (cols 1000)
-                         (mark-suffix  #\*)
-                         (border-chars "-|+")
-                         (border-style :default)
-                         (header-style :default)
-                         (cell-style   :default)
-                         (mark-style   :default)
-                         (col-header   nil)
-                         (margin       0)
-                         (column-width *column-width*)
-                         (align        :left)
-                         (stream       *standard-output*))
+;; copied from table-lists
+(defun vtable-lists (objects &key
+                               ;; (cols 1000)
+                               (mark-suffix  #\*)
+                               (border-chars "-|+")
+                               (border-style :default)
+                               (header-style :default)
+                               (cell-style   :default)
+                               (mark-style   :default)
+                               (col-header   nil)
+                               (margin       0)
+                               (column-width *column-width*)
+                               (align        :left)
+                               (stream       *standard-output*)
+                               &ALLOW-OTHER-KEYS)
   "Print a table where the headers are in the first column, not the firts row.
 
   Like TABLE, OBJECTS must be a list of string designators with the same length.
@@ -1319,9 +1556,9 @@ Output goes to STREAM."
         collect (loop for key in (uiop:ensure-list keys)
                       collect (getf plist key))))
 
-(defun remove-keys (keys exclude-list)
+(defun remove-keys (keys exclude)
   ;; don't use set-difference to preserve order.
-  (remove-if (lambda (it) (find it exclude-list)) keys))
+  (remove-if (lambda (it) (find it exclude)) keys))
 
 (defun plists-table (plist-list
                      &key
@@ -1405,6 +1642,8 @@ Output goes to STREAM."
                         (stream       *standard-output*)
                         )
   "Print a list of plists as a VTABLE.
+
+  See also VTABLE with the :plists-p key argument and `*prefer-plists-in-tables*`.
 
   The first colum (and not row) shows the plist keys, taken from the first plist object.
   All other rows show the values of all the plist objects.
