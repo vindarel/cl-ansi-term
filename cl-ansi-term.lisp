@@ -512,14 +512,14 @@ or :CENTER. Output goes to STREAM."
   nil)
 
 (defun vspace (&key
-               (stream *standard-output*)
+                 (stream *standard-output*)
                  (space 3))
   "Print vertical space, aka a SPACE amount of newlines,
   to STREAM (standard output by default).
 
   Hooks are performed before and after printing."
   (perform-hook :before-printing)
-  (format stream "~v&" width)
+  (format stream "~v&" space)
   (terpri stream)
   (finish-output stream)
   (perform-hook :after-printing))
@@ -539,12 +539,12 @@ or :CENTER. Output goes to STREAM."
   (perform-hook :before-printing)
   (with-reasonable-width width
       (align-object width align)
-    (vspace :width space)
+    (vspace :space space)
     (print-filler filler width style stream)
     (format stream "~&~a" (make-string left-space :initial-element #\Space))
     (cat-print title)
     (print-filler filler width style stream)
-    (vspace :width space))
+    (vspace :space space))
   (terpri stream)
   (finish-output stream)
   (perform-hook :after-printing))

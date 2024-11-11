@@ -138,7 +138,7 @@ Quick snippets:
 
 Use `vspace`, arguments:
 
-* `width`: defaults to 3 newlines
+* `space`: defaults to 3 newlines
 * `stream`: defaults to stdout.
 
 ### Print a title in a banner: `banner`
