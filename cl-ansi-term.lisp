@@ -866,6 +866,15 @@ Output goes to STREAM."
     ((and (every #'property-list-p one-or-many-objects)
           plists-p)
      (apply #'plists-table one-or-many-objects keys))
+
+    ;; Hedge case:
+    ;; a single list of regular elements.
+    ;; TABLE would display vertically, because it would loop over each element,
+    ;; and they have no rows.
+    ((and (not (consp (first one-or-many-objects)))
+          (not (property-list-p one-or-many-objects)))
+     (funcall #'table-lists (list one-or-many-objects)))
+
     (t
      (apply #'table-lists one-or-many-objects keys))
     ))
@@ -911,6 +920,13 @@ Output goes to STREAM."
     ((and (every #'property-list-p one-or-many-objects)
           plists-p)
      (apply #'plists-vtable one-or-many-objects args))
+
+    ;; Hedge case: see above.
+    ((and (not (consp (first one-or-many-objects)))
+          (not (property-list-p one-or-many-objects)))
+     ;; we call the normal table function.
+     (table-lists one-or-many-objects))
+
     (t
      (apply #'vtable-lists one-or-many-objects args))
     ))
