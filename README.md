@@ -49,7 +49,7 @@ Print tables:
 
 Hooks are applied before and after each printing primitive, see our documentation.
 
-and (new as of November, 2024 and in testing)
+and
 
 * vertical space: `vspace`
 * titles in banners: `banner`
@@ -109,7 +109,7 @@ Quick snippets:
 - a list of regular lists, composed of string-designators
 - a list of hash-tables
 - a list of property-lists
-  - use `:plists-p t` or `(setf *prefer-plists-in-tables* t)` to help the function distinguish between a regular list of lists
+  - use `:plists-p t` or `(setf *prefer-plists-in-tables* t)` to help the function distinguish between a regular list of lists and a list of property-lists.
 - a single hash-table or a single property list.
 
 ~~~lisp
