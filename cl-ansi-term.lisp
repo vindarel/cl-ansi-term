@@ -48,6 +48,7 @@
 
 (in-package #:cl-ansi-term)
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
 ;;                        Parameters and Constants                        ;;
@@ -151,6 +152,7 @@ by real-world terminals.")
   between a list of plists and a list of regular lists,
   it will give precedence to displaying the data as plists.")
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
 ;;                                 Hooks                                  ;;
@@ -186,6 +188,7 @@ one function associated with EVENT and NIL otherwise."
     (dolist (x it t)
       (apply x args))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
 ;;                   Graphic Rendition and Style Sheet                    ;;
@@ -248,6 +251,7 @@ redirected to a file)."
     (princ it stream)
     (setf *style* style)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
 ;;                               Utilities                                ;;
@@ -318,6 +322,7 @@ rendition."
   (apply #'circular-list
          (ensure-cons object)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
 ;;                               Functions                                ;;
@@ -866,9 +871,12 @@ Output goes to STREAM."
       (perform-hook :after-printing)
       nil)))
 
-;;;;;;;;;;;;
-;; Tables
-;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                        Functions: tables                               ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; trivial-types
 (defmacro %proper-list-p (var &optional (element-type '*))
@@ -987,6 +995,7 @@ Examples:
      'normal-lists)
     ))
 
+;; ! mainly copied from above
 (defun vtable-dispatch (one-or-many-objects
                        &rest args
                        &key
@@ -1307,48 +1316,6 @@ Output goes to STREAM."
   (perform-hook :after-printing stream)
   nil)
 
-;; From trivial-types.
-(defun property-list-p (object)
-  "Returns true if OBJECT is a property list.
-
-Examples:
-
-    (property-list-p 1) => NIL
-    (property-list-p '(1 2 3)) => NIL
-    (property-list-p '(foo)) => NIL
-    (property-list-p nil) => T
-    (property-list-p '(foo 1)) => T
-    (property-list-p '(:a 1 :b 2)) => T"
-  ;; (declare (optimize . #.*standard-optimize-qualities*))
-  (typecase object
-    (null t)
-    (cons
-     (loop
-       (if (null object)
-           (return t)
-           (let ((key (car object))
-                 (next (cdr object)))
-             (if (or (not (symbolp key))
-                     (not (consp next)))
-                 (return)
-                 (setq object (cdr next)))))))))
-
-
-(defun invert-plists-matrix (objects)
-  "Transform a list of rows to a list of columns.
-
-  (invert-plists-matrix '((a b c) (1 2 3)))
-  ;; => ((A 1) (B 2) (C 3))
-  "
-  (loop :with content-length = (length (first objects))
-        :with grid = (loop :repeat content-length :collect (make-list (length objects)))
-        :for obj :in objects
-        :for i := 0 :then (incf i)
-        :do (loop :for j :from 0 :to (1- content-length)
-                  :for row := (nth j grid)
-                  :do  (setf (nth i row) (nth j obj)))
-        :finally (return grid)))
-
 ;; copied from table-lists
 (defun vtable-lists (objects &key
                                ;; (cols 1000)
@@ -1364,7 +1331,7 @@ Examples:
                                (align        :left)
                                (stream       *standard-output*)
                                &ALLOW-OTHER-KEYS)
-  "Print a table where the headers are in the first column, not the firts row.
+  "Print a table where the headers are in the first column, not the first row.
 
   Like TABLE, OBJECTS must be a list of string designators with the same length.
 
@@ -1402,6 +1369,49 @@ Examples:
          :column-width column-width
          :align align
          :stream stream))
+
+
+;; From trivial-types.
+(defun property-list-p (object)
+  "Returns true if OBJECT is a property list.
+
+Examples:
+
+    (property-list-p 1) => NIL
+    (property-list-p '(1 2 3)) => NIL
+    (property-list-p '(foo)) => NIL
+    (property-list-p nil) => T
+    (property-list-p '(foo 1)) => T
+    (property-list-p '(:a 1 :b 2)) => T"
+  ;; (declare (optimize . #.*standard-optimize-qualities*))
+  (typecase object
+    (null t)
+    (cons
+     (loop
+       (if (null object)
+           (return t)
+           (let ((key (car object))
+                 (next (cdr object)))
+             (if (or (not (symbolp key))
+                     (not (consp next)))
+                 (return)
+                 (setq object (cdr next)))))))))
+
+(defun invert-plists-matrix (objects)
+  "Transform a list of rows to a list of columns.
+
+  (invert-plists-matrix '((a b c) (1 2 3)))
+  ;; => ((A 1) (B 2) (C 3))
+  "
+  (loop :with content-length = (length (first objects))
+        :with grid = (loop :repeat content-length :collect (make-list (length objects)))
+        :for obj :in objects
+        :for i := 0 :then (incf i)
+        :do (loop :for j :from 0 :to (1- content-length)
+                  :for row := (nth j grid)
+                  :do  (setf (nth i row) (nth j obj)))
+        :finally (return grid)))
+
 
 (defun plist-table (plist &key
                             (cols 1000)
@@ -1500,59 +1510,8 @@ Examples:
          :stream stream
          ))
 
-(defun ht-table (ht &key
-                      (cols 1000)
-                      (mark-suffix  #\*)
-                      (border-chars "-|+")
-                      (border-style :default)
-                      (header-style :default)
-                      (cell-style   :default)
-                      (mark-style   :default)
-                      (col-header   nil)
-                      (margin       0)
-                      (column-width *column-width*)
-                      (align        :left)
-                      (stream       *standard-output*)
-                            &ALLOW-OTHER-KEYS
-                      )
-  "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
 
-  COLS allows to limit the number of columns.
-
-  Other arguments are passed to the TABLE function.
-
-  Example:
-
-    (ht-table (serapeum:dict :a 1 :b 2 :c 3))
-
-  =>
-
-    +---------+---------+---------+
-    |A        |B        |C        |
-    +---------+---------+---------+
-    |1        |2        |3        |
-    +---------+---------+---------+
-
-    See also HT-VTABLE for headers in a column."
-  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
-  ;;This could be a parameter.
-  (let ((keys (reverse (alexandria:hash-table-keys ht)))
-        (values (reverse (alexandria:hash-table-values ht))))
-    (table-lists (list (serapeum:take cols keys)
-                       (serapeum:take cols values))
-           :mark-suffix mark-suffix
-           :border-chars border-chars
-           :border-style border-style
-           :header-style header-style
-           :cell-style cell-style
-           :mark-style mark-style
-           :col-header col-header
-           :margin margin
-           :column-width column-width
-           :align align
-           :stream stream
-           )))
-
+
 (defun alist-keys (alist)
   (when (consp alist)
     (loop for (key . val) in alist
@@ -1690,6 +1649,61 @@ Examples:
         (values (mapcar #'alist-values alists-list)))
     (vtable-lists (cons keys values)
                  :cols cols
+           :mark-suffix mark-suffix
+           :border-chars border-chars
+           :border-style border-style
+           :header-style header-style
+           :cell-style cell-style
+           :mark-style mark-style
+           :col-header col-header
+           :margin margin
+           :column-width column-width
+           :align align
+           :stream stream
+           )))
+
+
+
+(defun ht-table (ht &key
+                      (cols 1000)
+                      (mark-suffix  #\*)
+                      (border-chars "-|+")
+                      (border-style :default)
+                      (header-style :default)
+                      (cell-style   :default)
+                      (mark-style   :default)
+                      (col-header   nil)
+                      (margin       0)
+                      (column-width *column-width*)
+                      (align        :left)
+                      (stream       *standard-output*)
+                            &ALLOW-OTHER-KEYS
+                      )
+  "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
+
+  COLS allows to limit the number of columns.
+
+  Other arguments are passed to the TABLE function.
+
+  Example:
+
+    (ht-table (serapeum:dict :a 1 :b 2 :c 3))
+
+  =>
+
+    +---------+---------+---------+
+    |A        |B        |C        |
+    +---------+---------+---------+
+    |1        |2        |3        |
+    +---------+---------+---------+
+
+    See also HT-VTABLE for headers in a column."
+  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
+  ;;This could be a parameter.
+  (let ((keys (reverse (alexandria:hash-table-keys ht)))
+        (values (reverse (alexandria:hash-table-values ht))))
+    (table-lists (list (serapeum:take cols keys)
+                       (serapeum:take cols values))
            :mark-suffix mark-suffix
            :border-chars border-chars
            :border-style border-style
@@ -1868,6 +1882,7 @@ Examples:
             ;; :cols cols                  ; unused in table
             )))
 
+
 (defun collect-plists-values (keys plists)
   (loop for plist in plists
         collect (loop for key in (uiop:ensure-list keys)
