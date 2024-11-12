@@ -45,7 +45,8 @@
               #:alists-table
               #:alist-table
               #:title
-              #:banner-fmt)
+              #:banner-fmt
+              #:title-fmt)
   )
 
 (in-package #:cl-ansi-term)
@@ -617,6 +618,12 @@ or :CENTER. Output goes to STREAM."
 
   Passes other key arguments to BANNER."
   (apply #'banner title :filler " " rest))
+
+(defun title-fmt (title &rest args)
+  "Call the title function, but format TITLE with ARGS before.
+
+  See BANNER-FMT."
+  (title (apply #'format nil title args)))
 
 (defun progress-bar (label progress
                      &key
