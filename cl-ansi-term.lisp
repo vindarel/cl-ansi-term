@@ -28,7 +28,7 @@
               #:remove-hook
               #:update-style-sheet
               #:cat-print
-              #:print
+              #:print-styled
               #:hr
               #:vspace
               #:banner
@@ -44,7 +44,7 @@
               #:*prefer-plists-in-tables*
               #:alists-table
               #:alist-table)
-  (:shadow    #:print))
+  )
 
 (in-package #:cl-ansi-term)
 
@@ -477,7 +477,7 @@ documentation for PRINT function. Return a list, suitable for passing to
         (push (prepare string i (length string)) result))
       (nreverse result))))
 
-(defun print (control-string
+(defun print-styled (control-string
               &key
                 args
                 (base-style  :default)
@@ -485,13 +485,38 @@ documentation for PRINT function. Return a list, suitable for passing to
                 (fill-column 0)
                 (align       :left)
                 (stream      *standard-output*))
-  "Insert arguments from ARGS (list designator) into CONTROL-STRING
-substituting tildes. Any region of text in CONTROL-STRING can be printed in
-specified style following this pattern: [text](NAME-OF-STYLE). Where
-NAME-OF-STYLE is downcased name of symbol (keyword) in style sheet. Style of
-the rest of the output defaults to BASE-STYLE. MARGIN, FILL-COLUMN, and
-ALIGN control corresponding parameters of output. Valid values for ALIGN
-are :LEFT (default), :CENTER, and :RIGHT. Output goes to STREAM."
+  "Print text with CAT-PRINT, but apply CONTROL-STRING with the arguments from ARGS, where each tilde character of CONTROL-STRING is replaced with an argument.
+
+  A special syntax can be used to apply styles.
+
+Example:
+
+    (term:print-styled \"~ and ~\" :args '(\"foo\" \"bar\") :align :center)
+
+is equivalent to
+
+    (term:cat-print \"foo and bar\" :align :center)
+
+
+Any region of text in CONTROL-STRING can be printed in a
+specified style following this pattern:
+
+   [text](:name-of-style)
+
+where :name-of-style is a downcase keyword in the style sheet.
+
+The style of the rest of the output defaults to BASE-STYLE.
+
+ALIGN can be :LEFT (default), :CENTER, and :RIGHT.
+
+MARGIN is the length of the left margin.
+FILL-COLUMN sets the column width:
+
+(term:print-styled \"~ and ~\" :args '(\"foo\" \"bar\") :align :center :fill-column 10)
+                                    foo and
+                                      bar
+
+Output goes to STREAM."
   (cat-print (parse-control-string control-string
                                    (ensure-list args))
              :base-style  base-style

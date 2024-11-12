@@ -238,6 +238,46 @@ Print a title in between 2 horizontal lines, with vertical space before and afte
 
 ```
 
+### Print text centered, with margin, with stylesheets: `cat-print` and `print-styled`
+
+Print text with CAT-PRINT, but apply CONTROL-STRING with the arguments from ARGS, where each tilde character of CONTROL-STRING is replaced with an argument.
+
+A special syntax can be used to apply styles.
+
+Example:
+
+~~~lisp
+(term:print-styled "~ and ~" :args '("foo" "bar") :align :center)
+~~~
+
+is equivalent to
+
+~~~lisp
+(term:cat-print "foo and bar" :align :center)
+~~~
+
+Any region of text in CONTROL-STRING can be printed in a
+specified style following this pattern:
+
+    [text](:name-of-style)
+
+where :name-of-style is a downcase keyword in the style sheet.
+
+The style of the rest of the output defaults to BASE-STYLE.
+
+**ALIGN** can be :LEFT (default), :CENTER, and :RIGHT.
+
+**MARGIN** is the length of the left margin.
+
+**FILL-COLUMN** sets the column width:
+
+~~~lisp
+(term:print "~ and ~" :args '("foo" "bar") :align :center :fill-column 10)
+                                    foo and
+                                      bar
+~~~
+
+Output goes to STREAM."
 
 
 ### Stylesheets and colorized text

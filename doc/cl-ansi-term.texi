@@ -2,11 +2,11 @@
 @comment %**start of header (This is for running Texinfo on a region.)
 @setfilename cl-ansi-term.info
 @settitle cl-ansi-term Library
-@set EDITION 0.1.2
-@set VERSION 0.1.2
-@set UPDATED 20 April 2020
-@set UPDATED-MONTH April 2020
-@set LASTCHANGE Thu Apr 30 18:42:00 EST 2020
+@set EDITION 0.2
+@set VERSION 0.2
+@set UPDATED 12 November 2024
+@set UPDATED-MONTH November 2024
+@set LASTCHANGE November 12 18:42:00 EST 2024
 
 @comment %**end of header (This is for running Texinfo on a region.)
 @synindex vr fn
@@ -16,7 +16,7 @@ This manual describes the cl-ansi-term Library (version
 @value{VERSION}, @value{UPDATED}), a library which allows to print
 various primitives on ANSI-compliant terminals.
 
-Copyright @copyright{} 2015 Mark Karpov, 2020 Vindarel
+Copyright @copyright{} 2015 Mark Karpov, 2020-present Vindarel
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -270,7 +270,7 @@ ABCDEFGHI
 @end example
 @end defun
 
-@defun print control-string @code{&key} args base-style margin fill-column align stream
+@defun print-styled control-string @code{&key} args base-style margin fill-column align stream
 Insert arguments from @var{args} (list designator) into
 @var{control-string} substituting tildes @code{~}. Any region of text
 in @var{control-string} can be printed in specified style following
@@ -285,7 +285,7 @@ control corresponding parameters of output. Valid values for
 
 Example:
 @example
-(term:print "~ and ~" :args '("foo" "bar"))
+(term:print-styled "~ and ~" :args '("foo" "bar"))
 ;; "foo and bar"
 @end example
 @end defun
