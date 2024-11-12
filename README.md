@@ -224,7 +224,7 @@ Use `vspace`, arguments:
 * `space`: defaults to 3 newlines
 * `stream`: defaults to stdout.
 
-### Print a title in a banner: `banner`
+### Print a title in a banner: `banner`, `banner-fmt`
 
 Print a title in between 2 horizontal lines, with vertical space before and after.
 
@@ -237,6 +237,13 @@ Print a title in between 2 horizontal lines, with vertical space before and afte
 
 
 ```
+
+`banner-fmt` accepts TITLE with FORMAT control strings and calls FORMAT on it with ARGS.
+
+         (banner-fmt \"file ~a\" \"test.csv\")
+
+`title` is a `banner` with no borders.
+
 
 ### Print text centered, with margin, with stylesheets: `cat-print` and `print-styled`
 

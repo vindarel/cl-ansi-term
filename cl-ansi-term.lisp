@@ -43,7 +43,9 @@
               #:plists-vtable
               #:*prefer-plists-in-tables*
               #:alists-table
-              #:alist-table)
+              #:alist-table
+              #:title
+              #:banner-fmt)
   )
 
 (in-package #:cl-ansi-term)
@@ -565,7 +567,7 @@ or :CENTER. Output goes to STREAM."
 
 (defun banner (title &key
                        (stream *standard-output*)
-                       (style :default)
+                       (base-style :default)
                        (width 0)
                        (space 1)
                        (left-space 5)
@@ -579,14 +581,42 @@ or :CENTER. Output goes to STREAM."
   (with-reasonable-width width
       (align-object width align)
     (vspace :space space)
-    (print-filler filler width style stream)
+    (print-filler filler width base-style stream)
     (format stream "~&~a" (make-string left-space :initial-element #\Space))
-    (cat-print title)
-    (print-filler filler width style stream)
+    (cat-print title :align align :base-style base-style :stream stream)
+    (print-filler filler width base-style stream)
     (vspace :space space))
   (terpri stream)
   (finish-output stream)
   (perform-hook :after-printing))
+
+(defun banner-fmt (title &rest args)
+  "Same result as BANNER with default styling arguments, but accepts a TITLE with CL:FORMAT control strings that are formatted with ARGS.
+
+  Usage:
+
+     (banner-fmt \"file ~a\" \"test.csv\")
+
+  =>
+
+--------------------------------------------------------------------------------
+     file test.csv
+--------------------------------------------------------------------------------
+
+  Is equivalent to:
+
+    (term:banner (format nil \"title ~a\" \"test.csv\"))
+
+  but you can pass key arguments to the latter."
+  (banner (apply #'format nil title args)))
+
+(defun title (title &rest rest &key &ALLOW-OTHER-KEYS)
+  "Like a BANNER, but with no borders, so simply print TITLE with vertical space above and below.
+
+  Accepts the :ALIGN parameter: :left, :center, :right.
+
+  Passes other key arguments to BANNER."
+  (apply #'banner title :filler " " rest))
 
 (defun progress-bar (label progress
                      &key
