@@ -279,6 +279,19 @@ The style of the rest of the output defaults to BASE-STYLE.
 
 Output goes to STREAM."
 
+### Print a progress bar
+
+~~~lisp
+(term:progress-bar "test" 82)
+test   ##################################################################################
+~~~
+
+On an interactive terminal, next calls erase the progress bar to print it again and have an effect of… progress.
+
+The progress bar respects styles with BAR-STYLE, LABEL-STYLE and NUM-STYLE.
+
+See also [progressons](https://github.com/vindarel/progressons).
+
 
 ### Stylesheets and colorized text
 

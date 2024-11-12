@@ -4,6 +4,7 @@
 - added vspace, banner
 - added vtable
 - table can now print lists of plists, lists of hash-tables, single elements.
+- progress-bar prints something on a dumb terminal
 
 ## CL ANSI Term 0.1.2
 

@@ -592,16 +592,34 @@ or :CENTER. Output goes to STREAM."
                        (num-style   :default)
                        (bar-width   -40)
                        (stream      *standard-output*))
-  "Print a progress bar. If PROGRESS is less than 100, move cursor to the
+  "Print a progress bar with FILLER characters advanced to PROGRESS percent.
+
+Needs an interactive terminal to have full effect.
+On a dumb terminal like Emacs' Slime REPL, it doesn't respect the styles and it doesn't erase the bar on subsequent calls.
+
+If PROGRESS is less than 100, move cursor to the
 beginning of current line, so next invocation of `progress-bar' will rewrite
-it. This function doesn't print anything if PROGRESS is less than 100 and
-output stream is not interactive or `*effects-enabled*' is NIL. Insert
-MARGIN spaces, then LABEL (style for the label is set with LABEL-STYLE).
-Size of progress bar is set by BAR-WIDTH. If BAR-WIDTH is not a positive
+it.
+
+This function doesn't print anything if PROGRESS is less than 100 and
+output stream is not interactive or `*effects-enabled*' is NIL.
+
+Insert MARGIN spaces, then LABEL (style for the label is set with LABEL-STYLE).
+
+The size of the progress bar is set by BAR-WIDTH. If BAR-WIDTH is not a positive
 number, `*terminal-width*' will be added to it to get positive BAR-WIDTH.
+
 BAR-STYLE is the style that will be used for the bar itself, while NUM-STYLE
-will be used for number of percents and some additional elements. Output
-goes to STREAM."
+will be used for number of percents and some additional elements.
+
+Output goes to STREAM."
+  (unless (effects-p stream)
+    (print-white-space margin stream)
+    (princ label stream)
+    (princ " ")
+    (format stream "~a" (make-string progress :initial-element filler))
+    )
+
   (unless (and (< progress 100)
                (not (effects-p stream)))
     (perform-hook :before-printing)
