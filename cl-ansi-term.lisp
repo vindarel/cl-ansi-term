@@ -17,7 +17,7 @@
 ;;; You should have received a copy of the GNU General Public License along
 ;;; with this program. If not, see <http://www.gnu.org/licenses/>.
 
-(defpackage   :cl-ansi-term
+(uiop:define-package   :cl-ansi-term
   (:nicknames :term)
   (:use       #:common-lisp
               #:alexandria
@@ -920,7 +920,7 @@ Examples:
 (defun table-dispatch (one-or-many-objects
                        &rest keys
                        &key
-                         (plists-p *prefer-plists-in-tables*)
+                         (plist *prefer-plists-in-tables*)
                          (alist nil)
                          (alists nil)
                        &ALLOW-OTHER-KEYS
@@ -935,10 +935,10 @@ Examples:
   - a list of property lists: in that case, we can not be sure
    that the user manipulates a list of plists or a list of regular lists with
    symbols and keywords.
-   Set the PLISTS-P key argument to T or call the PLISTS-TABLE function directly.
+   Set the PLIST key argument to T or call the PLISTS-TABLE function directly.
   - a list of lists.
   "
-  (remf keys :plists-p) ; either add the key arg to all functions, either delete it. Destructive.
+  (remf keys :plist) ; either add the key arg to all functions, either delete it. Destructive.
   (remf keys :alist)
   (remf keys :alists)
 
@@ -960,10 +960,10 @@ Examples:
     ;; without them being plists.
     ;;
     ;; For many plists:
-    ;; - either set the :plists-p key argument to T
+    ;; - either set the :plist key argument to T
     ;; - either call the PLISTS-TABLE function directly.
     ((and (every #'property-list-p one-or-many-objects)
-          plists-p)
+          plist)
      (apply #'plists-table one-or-many-objects keys)
      'property-lists)
 
@@ -999,7 +999,7 @@ Examples:
 (defun vtable-dispatch (one-or-many-objects
                        &rest args
                        &key
-                         (plists-p *prefer-plists-in-tables*)
+                         (plist *prefer-plists-in-tables*)
                          (alist nil)
                          (alists nil)
                           &ALLOW-OTHER-KEYS
@@ -1014,10 +1014,10 @@ Examples:
   - a list of property lists: in that case, we can not be sure
    that the user manipulates a list of plists or a list of regular lists with
    symbols and keywords.
-   Set the PLISTS-P key argument to T or call the PLISTS-TABLE function directly.
+   Set the PLIST key argument to T or call the PLISTS-TABLE function directly.
   - a list of lists.
   "
-  (remf args :plists-p) ; either add the key arg to all functions, either delete it. Destructive.
+  (remf args :plist) ; either add the key arg to all functions, either delete it. Destructive.
   (cond
     ;; One HT.
     ((hash-table-p one-or-many-objects)
@@ -1034,10 +1034,10 @@ Examples:
     ;; without them being plists.
     ;;
     ;; For many plists:
-    ;; - either set the :plists-p key argument to T
+    ;; - either set the :plist key argument to T
     ;; - either call the PLISTS-TABLE function directly.
     ((and (every #'property-list-p one-or-many-objects)
-          plists-p)
+          plist)
 
      ;; !!
      ;; Special handling for the VTABLE:
@@ -1070,7 +1070,7 @@ Examples:
 
 (defun table (objects
               &key
-                (plists-p *prefer-plists-in-tables*)
+                (plist *prefer-plists-in-tables*)
                 (alist nil)
                 (alists nil)
                 (keys nil)
@@ -1100,7 +1100,7 @@ Examples:
   - a list of property-lists
     - the table prints the keys and all the plists' values
     - to help the TABLE understand the arguments are plists
-      and not regular lists, set the PLISTS-P key argument to T
+      and not regular lists, set the PLIST key argument to T
       or the variable *prefer-plists-in-tables* to T.
     - see also PLISTS-TABLE
   - a single hash-table
@@ -1150,7 +1150,7 @@ MARGIN, an integer, is the left margin of the whole table.
 
 Output goes to STREAM."
   (table-dispatch objects
-                  :plists-p plists-p
+                  :plist plist
                   :alist alist
                   :alists alists
                   :keys keys
@@ -1169,7 +1169,7 @@ Output goes to STREAM."
 
 (defun vtable (objects
                &key
-                 (plists-p *prefer-plists-in-tables*)
+                 (plist *prefer-plists-in-tables*)
                  (alist nil)
                  (alists nil)
                  (keys nil)
@@ -1206,7 +1206,7 @@ Output goes to STREAM."
     +---------+---------+
 "
   (vtable-dispatch objects
-                   :plists-p plists-p
+                   :plist plist
                    :alist alist
                    :alists alists
                    :keys keys
@@ -1976,7 +1976,7 @@ Examples:
                         )
   "Print a list of plists as a VTABLE.
 
-  See also VTABLE with the :plists-p key argument and `*prefer-plists-in-tables*`.
+  See also VTABLE with the :plist key argument and `*prefer-plists-in-tables*`.
 
   The first colum (and not row) shows the plist keys, taken from the first plist object.
   All other rows show the values of all the plist objects.

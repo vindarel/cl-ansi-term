@@ -8,20 +8,20 @@
                           (2 "common lisp" "100")
                           ))
 
-  (banner "A simple table")
+  (banner "A single table")
+  (table (first objects))
+
+  (banner "A single table, in columns")
+  (vtable (first objects))
+
+  (banner "A list of lists")
   (table objects)
 
-  (banner "A single plist, in columns")
-  (vtable plist :plists-p t)
-
-  (banner "A list of plists")
-  (table (list plist plist plist) :plists-p t)
-
-  (banner "A list of plists, in columns: we need the :plists-p t argument.")
-  (vtable (list plist plist plist) :plists-p t)
+  (banner "A list of lists, in columns.")
+  (vtable objects)
 
   (banner "same, ignoring the column :b")
-  (vtable (list plist plist plist) :plists-p t :exclude :b)
+  (vtable objects :exclude :b)
   )
 
 ;; plists
@@ -32,16 +32,16 @@
   (table plist)
 
   (banner "A single plist, in columns")
-  (vtable plist :plists-p t)
+  (vtable plist :plist t)
 
   (banner "A list of plists")
-  (table (list plist plist plist) :plists-p t)
+  (table (list plist plist plist) :plist t)
 
-  (banner "A list of plists, in columns: we need the :plists-p t argument.")
-  (vtable (list plist plist plist) :plists-p t)
+  (banner "A list of plists, in columns: we need the :plist t argument.")
+  (vtable (list plist plist plist) :plist t)
 
   (banner "same, ignoring the column :b")
-  (vtable (list plist plist plist) :plists-p t :exclude :b)
+  (vtable (list plist plist plist) :plist t :exclude :b)
   )
 
 

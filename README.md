@@ -34,7 +34,7 @@ Print tables:
   * accepts:
     * lists of lists
     * lists of hash-tables
-    * lists of property-lists (see the `:plists-p t` argument and the `plists-table` function)
+    * lists of property-lists (see the `:plist t` argument and the `plists-table` function)
     * a single element
 
 ```
@@ -109,7 +109,7 @@ Quick snippets:
 - a list of regular lists, composed of string-designators
 - a list of hash-tables
 - a list of property-lists
-  - use `:plists-p t` or `(setf *prefer-plists-in-tables* t)` to help the function distinguish between a regular list of lists and a list of property-lists.
+  - use `:plist t` or `(setf *prefer-plists-in-tables* t)` to help the function distinguish between a regular list of lists and a list of property-lists.
 - a single hash-table or a single property list.
 
 ~~~lisp
@@ -136,7 +136,7 @@ Also print lists of hash-tables or lists of plists:
 
 ~~~lisp
 (defparameter *my-plist* '(:a 1 :b 2 :c 3))
-(table (list *my-plist* *my-plist*) :plists-p t)
+(table (list *my-plist* *my-plist*) :plist t)
 +---------+---------+---------+
 |A        |B        |C        |
 +---------+---------+---------+
@@ -145,7 +145,7 @@ Also print lists of hash-tables or lists of plists:
 |1        |2        |3        |
 +---------+---------+---------+
 
-(vtable (list *my-plist* *my-plist*) :plists-p t)
+(vtable (list *my-plist* *my-plist*) :plist t)
 +---------+---------+---------+
 |A        |1        |1        |
 +---------+---------+---------+
@@ -165,7 +165,7 @@ You can choose a set of keys (headers) or exclude some of them:
 *(those can be a single element)*
 
 ~~~lisp
-(table (list plist plist) :plists-p t :exclude :c)
+(table (list plist plist) :plist t :exclude :c)
 =>
 +---------+---------+
 |A        |B        |
@@ -314,7 +314,7 @@ Print a table filling cells with OBJECTS.
   - a list of property-lists
     - the table prints the keys and all the plists' values
     - to help the TABLE understand the arguments are plists
-      and not regular lists, set the PLISTS-P key argument to T
+      and not regular lists, set the PLIST key argument to T
       or the variable *prefer-plists-in-tables* to T.
     - see also PLISTS-TABLE
   - a single hash-table
