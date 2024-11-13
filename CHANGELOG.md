@@ -4,6 +4,8 @@
 - added vspace, banner
 - added vtable
 - table can now print lists of plists, lists of hash-tables, single elements.
+ - we can filter keys
+- table can filter in or out keys (considering the first list represents the headers)
 - progress-bar prints something on a dumb terminal
 
 ## CL ANSI Term 0.1.2

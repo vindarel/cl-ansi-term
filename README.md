@@ -112,6 +112,9 @@ Quick snippets:
   - use `:plist t` or `(setf *prefer-plists-in-tables* t)` to help the function distinguish between a regular list of lists and a list of property-lists.
 - a single hash-table or a single property list.
 
+The KEYS and EXCLUDE arguments allow to filter in or filter out the rows to display.
+
+
 ~~~lisp
 ;; The first list, headers, as the first row:
 (term:table (list '("name" "age")
@@ -132,7 +135,7 @@ Quick snippets:
 +---------+---------+
 ~~~
 
-Also print lists of hash-tables or lists of plists:
+Print lists of hash-tables or lists of plists:
 
 ~~~lisp
 (defparameter *my-plist* '(:a 1 :b 2 :c 3))
@@ -175,6 +178,8 @@ You can choose a set of keys (headers) or exclude some of them:
 |1        |2        |
 +---------+---------+
 ~~~
+
+#### Column width
 
 A long cell is truncated to :column-width, 10 by default.
 
@@ -327,9 +332,10 @@ Print a table filling cells with OBJECTS.
   - a single hash-table
   - a single plist.
 
-  KEYS is a list of keys to display (only applicable for hash-tables and plists). The associated rows or columns will be displayed.
+  KEYS is a list of keys to display. The associated rows or columns will be displayed.
+    With list of regular lists, the default headers are considered to be in the first list.
 
-  EXCLUDE is a list of keys to NOT display (only applicable for hash-tables and plists).
+  EXCLUDE is a list of keys to NOT display.
 Example:
 
    (table '((:A :B :C) (1 2 3)))

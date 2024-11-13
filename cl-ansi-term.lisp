@@ -957,6 +957,8 @@ Examples:
 (defun table-dispatch (one-or-many-objects
                        &rest keys
                        &key
+                         (keys nil)
+                         (exclude nil)
                          (plist *prefer-plists-in-tables*)
                          (alist nil)
                          (alists nil)
@@ -978,6 +980,10 @@ Examples:
   (remf keys :plist) ; either add the key arg to all functions, either delete it. Destructive.
   (remf keys :alist)
   (remf keys :alists)
+  (remf keys :keys)
+  (remf keys :exclude)
+
+  ;; About filtering rows with :keys and :exclude:
 
   (cond
     ;; One HT.
@@ -1107,6 +1113,8 @@ Examples:
 
 (defun table (objects
               &key
+                (keys nil)
+                (exclude nil)
                 (plist *prefer-plists-in-tables*)
                 (alist nil)
                 (alists nil)
@@ -1143,9 +1151,11 @@ Examples:
   - a single hash-table
   - a single plist.
 
-  KEYS is a list of keys to display (only applicable for hash-tables and plists). The associated rows or columns will be displayed.
+  KEYS is a list of keys to display. The associated rows or columns will be displayed.
+    Works naturally for hash-tables and plists.
+    For list of lists, the default keys (headers) are considered to be in the first list.
 
-  EXCLUDE is a list of keys to NOT display (only applicable for hash-tables and plists).
+  EXCLUDE is a list of keys to NOT display. The two options are mutually exclusive.
 
 Example:
 
@@ -1161,8 +1171,20 @@ Example:
     |10       |20       |30       |
     +---------+---------+---------+
 
+    (table '((:A :B :C) (1 2 3)) :exclude :b)
+
+=>
+
+    +---------+---------+
+    |A        |C        |
+    +---------+---------+
+    |1        |3        |
+    +---------+---------+
+
 
 See VTABLE to print the table vertically.
+
+Style options:
 
 If BORDER-STYLE is NIL, no border will be
 printed, otherwise BORDER-STYLE is expected to be a keyword that denotes
@@ -1228,19 +1250,25 @@ Output goes to STREAM."
 
   See TABLE for all options and the accepted OBJECTS types.
 
+  KEYS and EXCLUDE allow to filter in or filter out the rows to display.
+
   Example:
 
-   (vtable '((:A :B :C) (1 2 3)))
+    (vtable '((:A :B :C) (1 2 3) (10 20 30) (1.1 2.2 3.3)))
 
-=>
+    +---------+---------+---------+---------+
+    |A        |1        |10       |1.1      |
+    +---------+---------+---------+---------+
+    |B        |2        |20       |2.2      |
+    +---------+---------+---------+---------+
+    |C        |3        |30       |3.3      |
+    +---------+---------+---------+---------+
 
-    +---------+---------+
-    |A        |1        |
-    +---------+---------+
-    |B        |2        |
-    +---------+---------+
-    |C        |3        |
-    +---------+---------+
+  With :border-style set to NIL:
+
+    A         1         10        1.1
+    B         2         20        2.2
+    C         3         30        3.3
 "
   (vtable-dispatch objects
                    :plist plist
@@ -1262,8 +1290,36 @@ Output goes to STREAM."
                    :stream stream))
 
 
+(defun filter-lists (list-of-lists &key keys exclude (test #'equal))
+  "Considering the first list in list-of-lists represents the headers,
+  remove columns in all the lists."
+
+  (when (and (not keys) (not exclude))
+    (return-from filter-lists list-of-lists))
+
+  (let* ((all-headers (first list-of-lists))
+         (headers (if keys
+                      (uiop:ensure-list keys)
+                      (remove-if (lambda (it)
+                                   (member it (uiop:ensure-list exclude) :test test))
+                                 all-headers)))
+         (headers-positions (mapcar (lambda (it)
+                                      (position it all-headers :test #'equal))
+                                    headers)))
+    (loop for list in list-of-lists
+          collect (loop for pos in headers-positions
+                        collect (nth pos list)))))
+
+#+(or)
+(progn
+  (let ((list-of-lists '(("pk" "title" "price") (1 "lisp" "9.90") (2 "common lisp" "100"))))
+    (assert (print (filter-lists list-of-lists :exclude "pk")))))
+
+
 (defun table-lists (objects
                     &key
+                      (keys nil)
+                      (exclude nil)
                       (mark-suffix  #\*)
                       (border-chars "-|+")
                       (border-style :default)
@@ -1281,9 +1337,13 @@ Output goes to STREAM."
                       )
   "The main table directive that does the heavy lifting. All other table functions eventually call this one.
 
-  This function works with lists of lists of simple elements."
+  This function works with lists of lists of simple elements.
+
+  KEYS is a list of headers to display. Headers are the first list of OBJECTS.
+  EXCLUDE is a list of headers to not display."
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
+         (objects (filter-lists objects :keys keys :exclude exclude))
          (nb-columns (largest-length objects))
          (cell-style (ensure-circular-list cell-style))
          ;; the column width is made a circular list: use with POP.
@@ -1356,6 +1416,8 @@ Output goes to STREAM."
 ;; copied from table-lists
 (defun vtable-lists (objects &key
                                ;; (cols 1000)
+                               (keys nil)
+                               (exclude nil)
                                (mark-suffix  #\*)
                                (border-chars "-|+")
                                (border-style :default)
@@ -1370,30 +1432,12 @@ Output goes to STREAM."
                                &ALLOW-OTHER-KEYS)
   "Print a table where the headers are in the first column, not the first row.
 
-  Like TABLE, OBJECTS must be a list of string designators with the same length.
-
-  Example output, where '(:A :B :C) is the list of headers:
-
-    (vtable '((:A :B :C) (1 2 3) (10 20 30) (1.1 2.2 3.3)))
-
-    +---------+---------+---------+---------+
-    |A        |1        |10       |1.1      |
-    +---------+---------+---------+---------+
-    |B        |2        |20       |2.2      |
-    +---------+---------+---------+---------+
-    |C        |3        |30       |3.3      |
-    +---------+---------+---------+---------+
-
-  With :border-style set to NIL:
-
-    A         1         10        1.1
-    B         2         20        2.2
-    C         3         30        3.3
-
-"
+  Like TABLE, OBJECTS must be a list of string designators with the same length."
   ;; first object is the keys,
   ;; the rest are lists of values.
-  (table-lists (invert-plists-matrix objects)
+
+  (table-lists (invert-plists-matrix
+                (filter-lists objects :keys keys :exclude exclude))
          :mark-suffix mark-suffix
          :border-chars border-chars
          :border-style border-style

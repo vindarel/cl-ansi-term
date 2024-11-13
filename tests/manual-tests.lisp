@@ -20,8 +20,8 @@
   (banner "A list of lists, in columns.")
   (vtable objects)
 
-  (banner "same, ignoring the column :b")
-  (vtable objects :exclude :b)
+  (banner "same, ignoring the column pk")
+  (vtable objects :exclude "pk")
   )
 
 ;; plists
