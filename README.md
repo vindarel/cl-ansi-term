@@ -387,6 +387,18 @@ Blog posts:
 - http://40ants.com/lisp-project-of-the-day/2020/05/0082-data-table.html
 - http://40ants.com/lisp-project-of-the-day/2020/05/0084-cl-ascii-table.html
 
+## Lisp?!
+
+- https://lispcookbook.github.io/cl-cookbook/
+- https://github.com/CodyReichert/awesome-cl
+- https://lisp-journey.gitlab.io/
+- [Learn Common Lisp in videos with a code-first approach: learn CLOS, macros, condition handling, the interactive workflow and much more](https://www.udemy.com/course/common-lisp-programming/?referralCode=2F3D698BBC4326F94358)
+  - thanks for your support!
+
+> I have done some preliminary Common Lisp exploration prior to this course but had a lot of questions regarding practical use and development workflows. This course was amazing for this! I learned a lot of useful techniques for actually writing the code in Emacs, as well as conversational explanations of concepts that had previously confused me in text-heavy resources. Please keep up the good work and continue with this line of topics, it is well worth the price!
+
+Preston
+
 ## License
 
 Copyright © 2015–2018 Mark Karpov
