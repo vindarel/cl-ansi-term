@@ -955,10 +955,10 @@ Examples:
     ))
 
 (defun table-dispatch (one-or-many-objects
-                       &rest keys
+                       &rest rest
                        &key
-                         (keys nil)
-                         (exclude nil)
+                         ;; (keys nil)
+                         ;; (exclude nil)
                          (plist *prefer-plists-in-tables*)
                          (alist nil)
                          (alists nil)
@@ -977,26 +977,26 @@ Examples:
    Set the PLIST key argument to T or call the PLISTS-TABLE function directly.
   - a list of lists.
   "
-  (remf keys :plist) ; either add the key arg to all functions, either delete it. Destructive.
-  (remf keys :alist)
-  (remf keys :alists)
-  (remf keys :keys)
-  (remf keys :exclude)
+  (remf rest :plist) ; either add the key arg to all functions, either delete it. Destructive.
+  (remf rest :alist)
+  (remf rest :alists)
+  (remf rest :keys)
+  (remf rest :exclude)
 
   ;; About filtering rows with :keys and :exclude:
 
   (cond
     ;; One HT.
     ((hash-table-p one-or-many-objects)
-     (apply #'ht-table one-or-many-objects keys))
+     (apply #'ht-table one-or-many-objects rest))
     ;; A list of HTs.
     ((and (consp one-or-many-objects)
           (hash-table-p (first one-or-many-objects)))
-     (apply #'hts-table one-or-many-objects keys))
+     (apply #'hts-table one-or-many-objects rest))
 
     ;; One plist.
     ((property-list-p one-or-many-objects)
-     (apply #'plist-table one-or-many-objects keys)
+     (apply #'plist-table one-or-many-objects rest)
      'plist)
     ;; Can be distinguish between a list of plists and a list of lists?
     ;; Maybe the users manipulates regular lists with symbols and keywords,
@@ -1007,7 +1007,7 @@ Examples:
     ;; - either call the PLISTS-TABLE function directly.
     ((and (every #'property-list-p one-or-many-objects)
           plist)
-     (apply #'plists-table one-or-many-objects keys)
+     (apply #'plists-table one-or-many-objects rest)
      'property-lists)
 
     ;; Hedge case:
@@ -1025,16 +1025,16 @@ Examples:
     ;; Why bother?
     ((and (every #'association-list-p one-or-many-objects)
           alists)
-     (apply #'alists-table one-or-many-objects keys)
+     (apply #'alists-table one-or-many-objects rest)
      'alists)
     ;; one alist
     ((and (association-list-p one-or-many-objects)
           alist)
-     (apply #'alist-table one-or-many-objects keys)
+     (apply #'alist-table one-or-many-objects rest)
      'alist)
 
     (t
-     (apply #'table-lists one-or-many-objects keys)
+     (apply #'table-lists one-or-many-objects rest)
      'normal-lists)
     ))
 
@@ -1118,8 +1118,6 @@ Examples:
                 (plist *prefer-plists-in-tables*)
                 (alist nil)
                 (alists nil)
-                (keys nil)
-                (exclude nil)
                 ;; common args:
                 (mark-suffix  #\*)
                 (border-chars "-|+")
