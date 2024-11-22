@@ -325,6 +325,10 @@ Example:
 (term:table (list '(:name :age) '(:me 7)) :header-style :header)
 ~~~
 
+To see colors in a "dumb" terminal like in Emacs Slime, install the package [`slime-repl-ansi-color`](https://melpa.org/#/slime-repl-ansi-color), "require" it and enable it ith `M-x slime-repl-ansi-color-mode`.
+
+You can also disable styles in non-interactive terminals with `term::*enable-effects-on-dumb-terminals*`.
+
 Please see our online documentation.
 
 

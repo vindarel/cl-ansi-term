@@ -255,13 +255,19 @@ parameters of rendition."
   (setf (gethash :default *style-sheet*) (ansi-escape-seq))
   nil)
 
-(declaim (inline effects-p))
+(defparameter *enable-effects-on-dumb-terminals* t
+  "If non true, don't print ANSI escape codes on dumb terminals, like Emacs' Slime.")
 
+;; (declaim (inline effects-p))
 (defun effects-p (stream)
-  "Evaluates to T if STREAM has support for the effects and
-`*effects-enabled*' is not NIL."
-  (and *effects-enabled*
-       (interactive-stream-p stream)))
+  "Effects are now enabled everywhere, on real and dumb terminals, but we can control that.
+
+This function evaluates to T if:
+- `*enable-effects-on-dumb-terminals*' is T
+- STREAM has support for the effects and `*effects-enabled*' is not NIL."
+  (or *enable-effects-on-dumb-terminals*
+      (and *effects-enabled*
+           (interactive-stream-p stream))))
 
 (defun set-style (style &optional (stream *standard-output*))
   "Sets terminal rendition according to defined STYLE. It does nothing if

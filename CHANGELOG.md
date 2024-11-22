@@ -7,6 +7,7 @@
  - we can filter keys
 - table can filter in or out keys (considering the first list represents the headers)
 - progress-bar prints something on a dumb terminal
+- colors and styles are enabled everywhere, including on "dumb" (non interactive) terminals like Emacs' Slime.
 
 ## CL ANSI Term 0.1.2
 
