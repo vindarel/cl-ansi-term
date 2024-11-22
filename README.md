@@ -307,7 +307,26 @@ See also [progressons](https://github.com/vindarel/progressons).
 
 ### Stylesheets and colorized text
 
+Start by defining your stylesheet.
+
+~~~lisp
+(term:update-style-sheet
+ '((:header :cyan   :underline)
+   (:mark   :red    :reverse)
+   (:term   :yellow :bold)))
+~~~
+
+`:header`, `:mark` and `:term` are your own vocabulary. Anytime you
+use functions that accept a style, reference them.
+
+Example:
+
+~~~lisp
+(term:table (list '(:name :age) '(:me 7)) :header-style :header)
+~~~
+
 Please see our online documentation.
+
 
 ### Docstrings
 

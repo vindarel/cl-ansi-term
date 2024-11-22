@@ -217,18 +217,37 @@ all rendition parameters will be returned."
                   (cdr (assoc background-color +background-colors+))
                   (cdr (assoc effect           +effects+)))))))
 
-(defun update-style-sheet (alist)
-  "Update style sheet used by the application. Every item of ALIST must be a
-list with CAR denoting name of style sheet entry and CDR representing
-collection of tokens that define terminal rendition. Tokens can represent
-various things: foreground color, background color, and effects. Every type
-of token has its default value, so you can omit some tokens. However, if
-there are more than one token of the same type (for example :RED
-and :GREEN—both tokens represent foreground color), result is unpredictable
-and depends on internal workings of Common Lisp implementation used. You
-cannot redefine :DEFAULT style, it always represents default parameters of
-rendition."
-  (dolist (entry alist)
+(defun update-style-sheet (styles)
+  "Update the style sheet used by the application.
+
+Every item of STYLES must be a list with:
+
+- a first element that denotes the name of a style sheet entry. The names are yours.
+- a rest of elements that represent a collection of tokens that define terminal rendition.
+
+Example:
+
+  (update-style-sheet
+    '((:header :cyan   :underline)
+      (:mark   :red    :reverse)
+      (:term   :yellow :bold)))
+
+Then use it:
+
+   (term:table (list '(:name :age) '(:me 7)) :header-style :header)
+
+Tokens can represent various things: foreground color, background
+color, and effects. Every type of token has its default value, so you
+can omit some tokens.
+
+If there are more than one token of the same type (for example :RED
+and :GREEN—both tokens represent foreground color), result is
+unpredictable and depends on internal workings of Common Lisp
+implementation used.
+
+You cannot redefine the :DEFAULT style, it always represents default
+parameters of rendition."
+  (dolist (entry styles)
     (destructuring-bind (style . tokens) entry
       (if tokens
           (setf (gethash style *style-sheet*) (ansi-escape-seq tokens))
