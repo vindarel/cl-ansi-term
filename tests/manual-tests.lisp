@@ -70,8 +70,8 @@
   (banner "A list of hash-tables, in columns")
   (vtable (list d d d))
 
-  (banner "same, ignoring the column :b => TODO")
-  (vtable (list d d d)  :exclude :b)
+  (banner "same, ignoring the column :b")
+  (vtable (list d d d) :exclude :b)
   )
 
 ;; Association lists

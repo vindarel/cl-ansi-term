@@ -1932,9 +1932,8 @@ Examples:
 
 (defun hts-vtable (ht-list
                    &key
-                     ;;TODO:
-                     ;; (keys nil)
-                     ;; (exclude nil)
+                     (keys nil)
+                     (exclude nil)
                      ;; all:
                      (mark-suffix  #\*)
                      (border-chars "-|+")
@@ -1969,7 +1968,8 @@ Examples:
     +---------+---------+---------+
 
   See also HTS-TABLE for a regular display with the keys as headers in the first row."
-  (let* ((keys (reverse (alexandria:hash-table-keys (first ht-list))))
+  (let* ((keys (remove-keys (or keys (reverse (alexandria:hash-table-keys (first ht-list))))
+                            exclude))
          (values (collect-hash-tables-values keys ht-list)))
 
     (vtable-lists (cons keys values)
