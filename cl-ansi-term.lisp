@@ -1124,7 +1124,7 @@ Examples:
                 (cell-style   :default)
                 (mark-style   :default)
                 (col-header   nil)
-                ;; (cols 1000)
+                (cols 1000)
                 (margin       0)
                 (column-width *column-width*)
                 (align        :left)
@@ -1210,6 +1210,7 @@ Output goes to STREAM."
                   :alists alists
                   :keys keys
                   :exclude exclude
+                  :cols cols
                   :mark-suffix mark-suffix
                   :border-chars border-chars
                   :border-style border-style
@@ -1237,7 +1238,7 @@ Output goes to STREAM."
                  (cell-style   :default)
                  (mark-style   :default)
                  (col-header   nil)
-                 ;; (cols 1000)
+                 (cols 1000)
                  (margin       0)
                  (column-width *column-width*)
                  (align        :left)
@@ -1272,6 +1273,7 @@ Output goes to STREAM."
                    :alists alists
                    :keys keys
                    :exclude exclude
+                   :cols cols
                    ;; display options
                    :mark-suffix mark-suffix
                    :border-chars border-chars
@@ -1984,7 +1986,7 @@ Examples:
             :margin margin
             :column-width column-width
             :align align
-            ;; :cols cols                  ; unused in table
+            ;; :cols cols                  ; unused in vtable
             )))
 
 
@@ -2011,7 +2013,7 @@ Examples:
                        (cell-style   :default)
                        (mark-style   :default)
                        (col-header   nil)
-                       ;; (cols 1000)
+                       (cols 1000)
                        (margin       0)
                        (column-width *column-width*)
                        (align        :left)
