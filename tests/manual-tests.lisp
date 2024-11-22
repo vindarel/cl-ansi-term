@@ -55,7 +55,10 @@
   (banner "A single hash-table, in columns")
   (vtable d)
 
-  (banner "A single hash-table, ignoring column :b => TODO")
+  (banner "A single hash-table, ignoring column :b")
+  (table d :exclude :b)
+
+  (banner "A single hash-table, vertically ignoring column :b")
   (vtable d :exclude :b)
 
   (banner "A list of hash-tables")

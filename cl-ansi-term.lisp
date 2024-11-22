@@ -980,8 +980,6 @@ Examples:
   (remf rest :plist) ; either add the key arg to all functions, either delete it. Destructive.
   (remf rest :alist)
   (remf rest :alists)
-  (remf rest :keys)
-  (remf rest :exclude)
 
   ;; About filtering rows with :keys and :exclude:
 
@@ -1302,7 +1300,7 @@ Output goes to STREAM."
                                    (member it (uiop:ensure-list exclude) :test test))
                                  all-headers)))
          (headers-positions (mapcar (lambda (it)
-                                      (position it all-headers :test #'equal))
+                                      (position it all-headers :test test))
                                     headers)))
     (loop for list in list-of-lists
           collect (loop for pos in headers-positions
@@ -1744,6 +1742,8 @@ Examples:
 
 
 (defun ht-table (ht &key
+                      (keys nil)
+                      (exclude nil)
                       (cols 1000)
                       (mark-suffix  #\*)
                       (border-chars "-|+")
@@ -1756,11 +1756,13 @@ Examples:
                       (column-width *column-width*)
                       (align        :left)
                       (stream       *standard-output*)
-                            &ALLOW-OTHER-KEYS
-                      )
+                 &allow-other-keys
+                   )
   "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
 
   COLS allows to limit the number of columns.
+
+  KEYS and EXCLUDE allow to filter in and filter out our hash-table keys and values to display.
 
   Other arguments are passed to the TABLE function.
 
@@ -1777,24 +1779,24 @@ Examples:
     +---------+---------+---------+
 
     See also HT-VTABLE for headers in a column."
-  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
-  ;;This could be a parameter.
-  (let ((keys (reverse (alexandria:hash-table-keys ht)))
-        (values (reverse (alexandria:hash-table-values ht))))
+  (let* ((keys (remove-keys (or keys (reverse (alexandria:hash-table-keys ht)))
+                            exclude))
+         (values (first (collect-hash-tables-values keys (list ht)))))
     (table-lists (list (serapeum:take cols keys)
                        (serapeum:take cols values))
-           :mark-suffix mark-suffix
-           :border-chars border-chars
-           :border-style border-style
-           :header-style header-style
-           :cell-style cell-style
-           :mark-style mark-style
-           :col-header col-header
-           :margin margin
-           :column-width column-width
-           :align align
-           :stream stream
-           )))
+                 :cols cols
+                 :mark-suffix mark-suffix
+                 :border-chars border-chars
+                 :border-style border-style
+                 :header-style header-style
+                 :cell-style cell-style
+                 :mark-style mark-style
+                 :col-header col-header
+                 :margin margin
+                 :column-width column-width
+                 :align align
+                 :stream stream
+                 )))
 
 (defun ht-vtable (ht
                      &key
@@ -1969,7 +1971,7 @@ Examples:
 
 (defun remove-keys (keys exclude)
   ;; don't use set-difference to preserve order.
-  (remove-if (lambda (it) (find it exclude)) keys))
+  (remove-if (lambda (it) (find it (uiop:ensure-list exclude))) keys))
 
 (defun plists-table (plist-list
                      &key
@@ -2016,7 +2018,7 @@ Examples:
   (let* ((keys (remove-keys
                 (or (uiop:ensure-list keys)
                     (serapeum:plist-keys (first plist-list)))
-                (uiop:ensure-list exclude)))
+                exclude))
          (values (collect-plists-values keys plist-list)))
 
     (table-lists (cons keys values)
@@ -2080,7 +2082,7 @@ Examples:
   (let* ((keys (remove-keys
                 (or (uiop:ensure-list keys)
                     (serapeum:plist-keys (first plist-list)))
-                (uiop:ensure-list exclude)))
+                exclude))
          (values (collect-plists-values keys plist-list)))
 
     (vtable (cons keys values)
