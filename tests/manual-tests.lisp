@@ -55,14 +55,17 @@
   (banner "A single hash-table, in columns")
   (vtable d)
 
-  (banner "A single hash-table, ignoring column :b")
+  (banner "A single hash-table, ignoring column :B")
   (table d :exclude :b)
 
-  (banner "A single hash-table, vertically ignoring column :b")
+  (banner "A single hash-table, vertically ignoring column :B")
   (vtable d :exclude :b)
 
   (banner "A list of hash-tables")
   (table (list d d d))
+
+  (banner "A list of hash-tables, ignoring column :B")
+  (table (list d d d) :keys '(:a :c))
 
   (banner "A list of hash-tables, in columns")
   (vtable (list d d d))

@@ -1870,6 +1870,8 @@ Examples:
          )))
 
 (defun hts-table (ht-list &key
+                            (keys nil)
+                            (exclude nil)
                             (cols 1000)
                             (mark-suffix  #\*)
                             (border-chars "-|+")
@@ -1905,11 +1907,11 @@ Examples:
 
  See also HTS-VTABLE for a vertical table with keys displayed in the left column."
   (declare (ignorable cols))
-  ;; XXX: watch out we reverse the orders to try to have them in first-in first-out.
-  ;;This could be a parameter.
-  (let* ((keys (reverse (alexandria:hash-table-keys (first ht-list))))
-         (rows (collect-hash-tables-values keys ht-list)))
-    (table-lists (cons keys rows)
+  (let* ((keys (remove-keys (or keys (reverse (alexandria:hash-table-keys (first ht-list))))
+                            exclude))
+         (values (collect-hash-tables-values keys ht-list)))
+    (table-lists (cons keys values)
+                 ;; :cols cols
            :mark-suffix mark-suffix
            :border-chars border-chars
            :border-style border-style
@@ -1925,7 +1927,7 @@ Examples:
 
 (defun collect-hash-tables-values (keys ht-list)
   (loop for ht in ht-list
-        collect (loop for key in keys
+        collect (loop for key in (uiop:ensure-list keys)
                       collect (gethash key ht))))
 
 (defun hts-vtable (ht-list
