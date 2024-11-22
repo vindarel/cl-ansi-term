@@ -1798,8 +1798,24 @@ Examples:
                  :stream stream
                  )))
 
+(defun filter-batches (batches keys exclude)
+  " batches: ((:A 1.1) (:B 2.2) (:C 3.3)) "
+  (cond
+    (keys
+     (loop for batch in batches
+           if (find (car batch) (uiop:ensure-list keys) :test #'equal)
+             collect batch))
+    (exclude
+     (loop for batch in batches
+           if (not (find (car batch) (uiop:ensure-list exclude) :test #'equal))
+             collect batch))
+    (t batches)))
+
 (defun ht-vtable (ht
                      &key
+                       (keys nil)
+                       (exclude nil)
+                       ;; (cols 10000)
                        (mark-suffix  #\*)
                        (border-chars "-|+")
                        (border-style :default)
@@ -1814,6 +1830,8 @@ Examples:
                   &ALLOW-OTHER-KEYS
                        )
   "Print the hash-table HT as a table, where the first column is the keys, the second column is the value.
+
+  KEYS and EXCLUDE filter keys and values.
 
   Example:
 
@@ -1830,10 +1848,14 @@ Examples:
     +---------+---------+
 
   See also HT-TABLE for headers in the first row."
-  ;; TODO: exclude keys
-  (table-lists (reverse (serapeum:batches
+  ;; batches:
+  ;; ((:A 1.1) (:B 2.2) (:C 3.3))
+  (let* ((batches (reverse (serapeum:batches
                          (alexandria:hash-table-plist ht)
-                         2))
+                         2)))
+         (data (filter-batches batches keys exclude)))
+
+    (table-lists data
          :mark-suffix mark-suffix
          :border-chars border-chars
          :border-style border-style
@@ -1845,7 +1867,7 @@ Examples:
          :column-width column-width
          :align align
          :stream stream
-         ))
+         )))
 
 (defun hts-table (ht-list &key
                             (cols 1000)
