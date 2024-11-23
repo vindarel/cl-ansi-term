@@ -336,13 +336,10 @@ rendition."
     (print-partially filler 0 rest stream)
     (set-style :default)))
 
-(defun largest-elt (lines)
-  "Return the largest element of the given strings."
-  (extremum lines #'> :key #'length))
-
 (defun largest-length (lines)
   "Return the largest length of the given strings."
-  (length (largest-elt lines)))
+  (loop :for elt :in lines
+        :maximize (length elt)))
 #+nil
 (assert (equalp 8 (largest-length '("rst" "ldvvvvvv" nil))))
 
@@ -2038,7 +2035,7 @@ Examples:
                        (cell-style   :default)
                        (mark-style   :default)
                        (col-header   nil)
-                       (cols 1000)
+                       ;; (cols 1000)
                        (margin       0)
                        (column-width *column-width*)
                        (align        :left)
