@@ -79,7 +79,7 @@ depend entirely on EVENT on which every function is called.")
 (defvar *styles* (list)
   "The raw style sheet, a list of lists, that was given to `update-style-sheet', before interpretation of ANSI codes.")
 
-(defparameter *style-sheet* (make-hash-table)
+(defvar *style-sheet* (make-hash-table)
   "This hash table contains strings for various styles of terminal output,
 defined with `update-style-sheet'.")
 
