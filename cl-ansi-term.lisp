@@ -1346,6 +1346,18 @@ Output goes to STREAM."
   (let ((list-of-lists '(("pk" "title" "price") (1 "lisp" "9.90") (2 "common lisp" "100"))))
     (assert (print (filter-lists list-of-lists :exclude "pk")))))
 
+(defun get-cell-style (style-or-fn value &key header (default :default))
+  "If STYLE-OR-FN is a function, call it with VALUE and HEADER as arguments
+  and, if it returns NIL, return DEFAULT,
+  oherwise return STYLE-OR-FN (a keyword representing a style in the current stylesheet.
+
+  Used to style individual cells."
+  (if (functionp style-or-fn)
+      (or (funcall style-or-fn value header) default)
+      style-or-fn))
+
+(defvar *default-cell-style* :default
+  "Default cell style (:default), to use when a table :cell-style is not used, or when its parametric function doesn't return a value.")
 
 (defun table-lists (objects
                     &key
@@ -1371,7 +1383,40 @@ Output goes to STREAM."
   This function works with lists of lists of simple elements.
 
   KEYS is a list of headers to display. Headers are the first list of OBJECTS.
-  EXCLUDE is a list of headers to not display."
+  EXCLUDE is a list of headers to not display.
+
+  CELL-STYLE can be either a keyword, denoting a style in use, either a lambda function,
+  that can compute a style for a given cell.
+
+  *This feature is experimental.*
+
+  It takes two arguments: the cell value, the header, and a key :default argument.
+
+  Example:
+
+  (update-style-sheet
+   '((:color :cyan   :bold)
+     (:danger :red :bold)
+     (:green :green)
+     (:default :green)
+     ))
+
+  Below we print in red prices that are superior to 10,
+  we print in cyan the other prices,
+  and we print in green the other cells.
+
+  (setf *default-cell-style* :green)
+
+  (table objects
+         :cell-style (lambda (val header)
+                       (when (equal \"price\" header)
+                         (if (> val 10)
+                             :danger
+                             :color))))
+
+  See our tests for examples.
+
+  "
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (objects (filter-lists objects :keys keys :exclude exclude))
@@ -1407,28 +1452,31 @@ Output goes to STREAM."
                  (princ (char border-chars 1))
                  (set-style :default stream)))
 
-             (print-row (index items)
+             (print-row (index items &key headers)
                (align)
                (let ((i 0))
                  (dolist (cell items)
-                   (let ((cell (string* cell))
+                   (let ((cell/s (string* cell))
                          (width (pop column-width)))
                      (v-border)
                      (set-style
-                      (cond ((ends-with-subseq mark-suffix cell)
+                      (cond ((ends-with-subseq mark-suffix cell/s)
                              mark-style)
                             ((zerop index)
                              header-style)
                             ((and col-header (zerop i))
                              header-style)
-                            (t (pop cell-style))))
+                            (t (get-cell-style (pop cell-style)
+                                               cell
+                                               :header (nth i headers)
+                                               :default *default-cell-style*))))
                      (princ (str:shorten (- width
                                             (if border-style 1 0))
-                                         cell)
+                                         cell/s)
                             stream)
                      (set-style :default stream)
                      (print-white-space (- width
-                                           (length cell)
+                                           (length cell/s)
                                            (if border-style 1 0))
                                         stream)
                      (incf i)))
@@ -1437,7 +1485,7 @@ Output goes to STREAM."
 
       (dolist (row objects)
         (h-border)
-        (print-row row-index row)
+        (print-row row-index row :headers (first objects))
         (incf row-index))
       (h-border)))
   (finish-output stream)

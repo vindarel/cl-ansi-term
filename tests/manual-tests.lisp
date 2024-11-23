@@ -3,9 +3,13 @@
 
 ;; Normal lists
 (progn
+  ;; ANSI codes render ok in Slime's REPL with M-x slime-repl-ansi-color-mode,
+  ;; but they don't render in the pretty-printing buffer (C-c C-p on the last paren).
+  (setf *enable-effects-on-dumb-terminals* nil)
+
   (defparameter objects '(("pk" "title" "price")
-                          (1 "lisp" "9.90")
-                          (2 "common lisp" "100")
+                          (1 "lisp" 9.90)
+                          (2 "common lisp" 100)
                           ))
 
   (banner "A single table")
@@ -22,6 +26,25 @@
 
   (banner "same, ignoring the column pk")
   (vtable objects :exclude "pk")
+
+  (update-style-sheet
+   '((:color :cyan   :bold)
+     (:danger :red :bold)
+     (:green :green)
+     (:default :green)
+     ))
+
+  (setf *enable-effects-on-dumb-terminals* t)
+  (banner "print all cells with color")
+  (table objects :cell-style :color)
+
+  (banner "print in red prices that > 10, other prices in blue, other cells in green.")
+  (table objects
+         :cell-style (lambda (val header)
+                       (when (equal "price" header)
+                         (if (> val 10)
+                             :danger
+                             :color))))
   )
 
 ;; plists

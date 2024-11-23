@@ -331,6 +331,48 @@ You can also disable styles in non-interactive terminals with `term::*enable-eff
 
 Please see our online documentation.
 
+### Style individual table cells programmatically
+
+![](ansi-term-cell-styles.png)
+
+
+The `CELL-STYLE` argument can be either a keyword, denoting a style in
+use, either a lambda function, that can compute a style for a given
+cell.
+
+*This feature is experimental. It only works for regular a `table` (not vtable).*
+
+The function takes two arguments: the cell value, the header, and a key :default argument.
+
+Example:
+
+Below we print in red prices that are superior to 10,
+we print in cyan the other prices,
+and we print in green the other cells.
+
+~~~lisp
+(update-style-sheet
+'((:color :cyan   :bold)
+    (:danger :red :bold)
+    (:green :green)
+    (:default :green)
+    ))
+
+(setf *default-cell-style* :green)
+
+(defparameter objects '(("pk" "title" "price")
+                          (1 "lisp" 9.90)
+                          (2 "common lisp" 100)
+                          ))
+
+(table objects
+        :cell-style (lambda (val header)
+                      (when (equal "price" header)
+                        (if (> val 10)
+                            :danger
+                            :color))))
+~~~
+
 
 ### Docstrings
 
