@@ -76,6 +76,9 @@ place.")
 functions by given key. We use keywords as keys. Arguments for the functions
 depend entirely on EVENT on which every function is called.")
 
+(defvar *styles* (list)
+  "The raw style sheet, a list of lists, that was given to `update-style-sheet', before interpretation of ANSI codes.")
+
 (defparameter *style-sheet* (make-hash-table)
   "This hash table contains strings for various styles of terminal output,
 defined with `update-style-sheet'.")
@@ -240,13 +243,21 @@ Tokens can represent various things: foreground color, background
 color, and effects. Every type of token has its default value, so you
 can omit some tokens.
 
+For a full list of accepted tokens, see `+foreground-colors+', `+background-colors+' and `+effects+'.
+
 If there are more than one token of the same type (for example :RED
 and :GREEN—both tokens represent foreground color), result is
 unpredictable and depends on internal workings of Common Lisp
 implementation used.
 
 You cannot redefine the :DEFAULT style, it always represents default
-parameters of rendition."
+parameters of rendition.
+
+Tokens are interpreted into their ANSI code (:bold is ^[[33;49;1m … )
+and the new stylesheet is saved to `term::*style-sheet*'.
+
+STYLES are saved into `term::*styles*'."
+  (setf *styles* styles)
   (dolist (entry styles)
     (destructuring-bind (style . tokens) entry
       (if tokens
@@ -451,8 +462,8 @@ and :RIGHT. Output goes to STREAM."
   nil)
 
 (defun parse-control-string (string args)
-  "Parse control string STRING according to the format described in
-documentation for PRINT function. Return a list, suitable for passing to
+  "Parse the control string according to the format described in the
+documentation of the PRINT-STYLED function. Return a list, suitable for passing to
 `cat-print'."
   (labels ((positions (char str &optional (start 0) acc)
              (aif (position char str :start start :test #'char=)
