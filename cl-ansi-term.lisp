@@ -2035,7 +2035,7 @@ Examples:
                        (cell-style   :default)
                        (mark-style   :default)
                        (col-header   nil)
-                       ;; (cols 1000)
+                       (cols 1000)
                        (margin       0)
                        (column-width *column-width*)
                        (align        :left)
@@ -2063,6 +2063,7 @@ Examples:
     |10       |20       |30       |
     +---------+---------+---------+
 "
+  (declare (ignorable cols))
   (let* ((keys (remove-keys
                 (or (uiop:ensure-list keys)
                     (serapeum:plist-keys (first plist-list)))
