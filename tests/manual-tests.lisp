@@ -47,6 +47,23 @@
                              :color))))
   )
 
+(progn
+
+  (let ((*enable-effects-on-dumb-terminals* nil))
+    (banner "Tables with large content, adapting to the terminal width." :space 1)
+    ;; (cat-print "All tables should respect the same total width.")
+    (table-lists '((pk "long title" "long story")
+                   (1 "the unbelievable story of a Common Lisp programmen ep. 100010" "that line is quite long too in order to test")))
+
+    (table-lists '(("pk" "title" "price")
+                   (1 "lisp" 9.9) (2 "common lisp the cool prog language with a super nice cookbook contributed by yours truly because it's cool" 100)))
+
+    (banner "This table sets a smaller max column width")
+    (table-lists '(("pk" "title" "price")
+                   (1 "lisp" 9.9) (2 "common lisp the cool prog language with a super nice cookbook contributed by yours truly because it's cool" 100))
+                 :max-column-width 40)
+    ))
+
 ;; plists
 (progn
   (defparameter plist '(:a 1 :b 2 :c 3))

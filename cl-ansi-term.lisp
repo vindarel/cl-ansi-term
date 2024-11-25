@@ -63,13 +63,14 @@
 effects (and other terminal-dependent effects) are enabled, otherwise they
 are disabled.")
 
-(defparameter *terminal-width* 80
+(defparameter *terminal-width* 90
   "Many functions use this value to output text nicely. The default value is 80.
 If you want to dynamically change this variable, write and register
 :BEFORE-PRINTING hook and reassign terminal width before printing takes
 place.")
 
-(defparameter *column-width* 10 "The maximum table cells' width.")
+(defparameter *column-width* 20 "The table cells' width (DEPRECATED).")
+(defparameter *max-column-width* 80 "The maximum table cells' width.")
 
 (defparameter *hooks* (make-hash-table)
   "This variable is bound to a hash table that provides access to lists of
@@ -1359,6 +1360,63 @@ Output goes to STREAM."
 (defvar *default-cell-style* :default
   "Default cell style (:default), to use when a table :cell-style is not used, or when its parametric function doesn't return a value.")
 
+(defparameter *long-column-width* 20
+  "The size at which we decide this cell content should be truncated.")
+(defparameter *min-column-width* 3 "Should be at least 3")
+
+(defun long-column-p (nb)
+  (< *long-column-width* nb))
+
+(defun compute-columns-width (objects)
+  (let* (;; For each row, the length of each cell, minimum width 3
+         (cells-widths (loop for row in objects
+                             collect (loop for col in row
+                                           collect (max *min-column-width* (length (string* col))))))
+         ;; Now group by column.
+         (cols-widths (invert-matrix cells-widths))
+         ;; Get a list of widths, the max of each col.
+         (max-widths (loop for widths in cols-widths
+                           ;; a 1+ to avoid a shorten with ellipsis.
+                           collect (1+ (loop for width in widths
+                                             maximize width)))))
+    max-widths))
+
+(defun shorten-columns-width (max-widths &key (terminal-width *terminal-width*)
+                                           (max-column-width *max-column-width*))
+  "MAX-WIDTHS is a list of numbers, representing the max columns width for each column.
+  We want a column
+  - to not be shrinker than *min-column-width* (3, to allow border characters)
+  - to not be wider than *max-column-width* (set to 80 by default)
+
+  But mainly, as soon as the total of the columns' width is wider than the *terminal-width*,
+  we have to shrink the long columns (the ones that are wider than *long-column-width*).
+
+  We keep the wide-enough columns untouched, and the remaining available terminal width
+  is equally split between all the large columns.
+
+  For example, if we have 3 columns of max width '(4 50 100), then the shortened widths
+  are (4 43 43), for a total width of 90."
+  ;; Possible improvements: look at the columns' mean width, etc.
+  (cond
+    ((< (apply #'+ max-widths) terminal-width)
+     max-widths)
+    (t
+     ;; shorten the longest width
+     (loop for width in max-widths
+           with nb-of-long-cols = (count-if #'long-column-p max-widths)
+           with space-ok = (max *min-column-width*
+                                (loop :for width :in max-widths
+                                      :if (not (long-column-p width))
+                                        :summing width))
+           with space-to-share = (- terminal-width space-ok)
+           if (long-column-p width)
+             collect (min terminal-width
+                          max-column-width
+                          (floor (/ space-to-share
+                                    nb-of-long-cols)))
+           else
+             collect width))))
+
 (defun table-lists (objects
                     &key
                       (keys nil)
@@ -1372,7 +1430,8 @@ Output goes to STREAM."
                       (col-header   nil)
                       ;; (cols 1000)
                       (margin       0)
-                      (column-width *column-width*)
+                      ;; (column-width *column-width*)
+                      (max-column-width *max-column-width*)
                       (align        :left)
                       (stream       *standard-output*)
                       ;; accept :keys and :exclude.
@@ -1423,7 +1482,10 @@ Output goes to STREAM."
          (nb-columns (largest-length objects))
          (cell-style (ensure-circular-list cell-style))
          ;; the column width is made a circular list: use with POP.
-         (column-width (ensure-circular-list column-width))
+         (%column-width (shorten-columns-width
+                         (compute-columns-width objects)
+                         :max-column-width max-column-width))
+         (column-width (ensure-circular-list %column-width))
          (width (1+ (reduce #'+ (subseq column-width 0 nb-columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))
@@ -1472,7 +1534,8 @@ Output goes to STREAM."
                                                :default *default-cell-style*))))
                      (princ (str:shorten (- width
                                             (if border-style 1 0))
-                                         cell/s)
+                                         cell/s
+                                         :ellipsis "…")
                             stream)
                      (set-style :default stream)
                      (print-white-space (- width
@@ -1515,7 +1578,7 @@ Output goes to STREAM."
   ;; first object is the keys,
   ;; the rest are lists of values.
 
-  (table-lists (invert-plists-matrix
+  (table-lists (invert-matrix
                 (filter-lists objects :keys keys :exclude exclude))
          :mark-suffix mark-suffix
          :border-chars border-chars
@@ -1557,10 +1620,10 @@ Examples:
                  (return)
                  (setq object (cdr next)))))))))
 
-(defun invert-plists-matrix (objects)
+(defun invert-matrix (objects)
   "Transform a list of rows to a list of columns.
 
-  (invert-plists-matrix '((a b c) (1 2 3)))
+  (invert-matrix '((a b c) (1 2 3)))
   ;; => ((A 1) (B 2) (C 3))
   "
   (loop :with content-length = (length (first objects))
@@ -1572,6 +1635,9 @@ Examples:
                   :do  (setf (nth i row) (nth j obj)))
         :finally (return grid)))
 
+#++
+(invert-matrix '((a b c) (1 2 3)))
+;; ((A 1) (B 2) (C 3))
 
 (defun plist-table (plist &key
                             (cols 1000)
@@ -1586,8 +1652,8 @@ Examples:
                             (column-width *column-width*)
                             (align        :left)
                             (stream       *standard-output*)
-                            &ALLOW-OTHER-KEYS
-                            )
+                    &ALLOW-OTHER-KEYS
+                      )
   "Print PLIST as a table: the plist keys as the headers row, the plist values as one row below.
 
   COLS allows to limit the number of columns.
@@ -1611,18 +1677,18 @@ Examples:
         (values (serapeum:plist-values plist)))
     (table-lists (list (serapeum:take cols keys)
                        (serapeum:take cols values))
-           :mark-suffix mark-suffix
-           :border-chars border-chars
-           :border-style border-style
-           :header-style header-style
-           :cell-style cell-style
-           :mark-style mark-style
-           :col-header col-header
-           :margin margin
-           :column-width column-width
-           :align align
-           :stream stream
-           )))
+                 :mark-suffix mark-suffix
+                 :border-chars border-chars
+                 :border-style border-style
+                 :header-style header-style
+                 :cell-style cell-style
+                 :mark-style mark-style
+                 :col-header col-header
+                 :margin margin
+                 :column-width column-width
+                 :align align
+                 :stream stream
+                 )))
 
 (defun plist-vtable (plist
                      &key
