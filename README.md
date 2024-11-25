@@ -179,38 +179,51 @@ You can choose a set of keys (headers) or exclude some of them:
 +---------+---------+
 ~~~
 
-#### Column width
+#### Adapting the columns' widths
 
-A long cell is truncated to :column-width, 10 by default.
+The `table` function adapts to the viewport.
+
+It respects the terminal's width (`*TERMINAL-WIDTH*`).
+
+If one or more columns take too much width (see `*LONG-COLUMN-WIDTH`*), they are truncated and
+their cells content will be shortened with the unicode \"…\".
 
 ~~~lisp
 (term:table '(("name" "age" "email")
               ("me" 7 "some@blah")
-              ("me" 7 "some@with-some-longer.email")))
-+---------+---------+---------+
-|name     |age      |email    |
-+---------+---------+---------+
-|me       |7        |some@blah|
-+---------+---------+---------+
-|me       |7        |some@w(…)|
-+---------+---------+---------+
+              ("this name is also very very very very long and too long" 7 "some@with-some-very-very-very-very-very-longer.email")))
 ~~~
 
-Each column can have a different length:
+```
++-------------------------------------+---+-------------------------------------+
+|name                                 |age|email                                |
++-------------------------------------+---+-------------------------------------+
+|me                                   |7  |some@blah                            |
++-------------------------------------+---+-------------------------------------+
+|this name is also very very very ver…|7  |some@with-some-very-very-very-very-v…|
++-------------------------------------+---+-------------------------------------+
+```
+
+Each column can have a different length. Set `:columns-widths` to
+give a width to each and every column:
+
 
 ~~~lisp
 (term:table '(("name" "age" "email")
               ("me" 7 "some@blah")
               ("me" 7 "some@with-some-longer.email"))
-             :column-width '(10 4 20))
+             :columns-widths '(10 4 20))
 +---------+---+-------------------+
 |name     |age|email              |
 +---------+---+-------------------+
 |me       |7  |some@blah          |
 +---------+---+-------------------+
-|me       |7  |some@with-some-l(…)|
+|me       |7  |some@with-some-lon…|
 +---------+---+-------------------+
 ~~~
+
+Also set `:max-column-width` (defaults to 80) to change the maximum width of any column.
+
 
 ### Print horizontal lines: `hr`
 

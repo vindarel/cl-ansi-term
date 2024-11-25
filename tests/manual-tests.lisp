@@ -62,6 +62,11 @@
     (table-lists '(("pk" "title" "price")
                    (1 "lisp" 9.9) (2 "common lisp the cool prog language with a super nice cookbook contributed by yours truly because it's cool" 100))
                  :max-column-width 40)
+
+    (banner "Here we choose our columns' widths precisely")
+    (table-lists '(("pk" "title" "price")
+                   (1 "lisp" 9.9) (2 "common lisp the cool prog language with a super nice cookbook contributed by yours truly because it's cool" 100))
+                   :columns-widths '(15 30 15))
     ))
 
 ;; plists

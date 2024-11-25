@@ -1161,9 +1161,16 @@ Examples:
                 (cols 1000)
                 (margin       0)
                 column-width
+                (max-column-width *max-column-width*)
+                columns-widths
                 (align        :left)
                 (stream       *standard-output*))
   "Print a table filling cells with OBJECTS.
+
+  Apply styles and adapt the columns' width to the terminal.
+
+  Input data
+  ----------
 
   OBJECTS can be:
 
@@ -1180,6 +1187,9 @@ Examples:
     - see also PLISTS-TABLE
   - a single hash-table
   - a single plist.
+
+  Filtering keys to display
+  -------------------------
 
   KEYS is a list of keys to display. The associated rows or columns will be displayed.
     Works naturally for hash-tables and plists.
@@ -1214,7 +1224,22 @@ Example:
 
 See VTABLE to print the table vertically.
 
-Style options:
+Adapting the columns' width
+---------------------------
+
+The TABLE function adapts to the viewport.
+It respects the terminal's width (*TERMINAL-WIDTH*).
+
+If one or more columns take too much width (see *LONG-COLUMN-WIDTH*), they are truncated and
+their cells content will be shortened with the unicode \"…\".
+
+Set :MAX-COLUMN-WIDTH (defaults to 80) to change the maximum width of any column.
+
+Set :COLUMNS-WIDTHS to give a width to each and every column.
+
+
+Style options
+-------------
 
 If BORDER-STYLE is NIL, no border will be
 printed, otherwise BORDER-STYLE is expected to be a keyword that denotes
@@ -1227,11 +1252,6 @@ CELL-STYLE is a list, its elements will be used to differently render every
 column.
 
 Objects that end with MARK-SUFFIX will be printed using MARK-STYLE.
-
-COLUMN-WIDTH is 10 by default (see `*column-width*'). It can be an integer that applies to
-all columns, or a list designator to set a different
-width for every column. A cell content is truncated to fit the width. See `str:*ellipsis*'
-for the ellusion string, `(…)' by default.
 
 ALIGN controls the alignmet inside a cell. It can take the values :LEFT (default value), :CENTER, and :RIGHT.
 
@@ -1254,6 +1274,8 @@ Output goes to STREAM."
                   :col-header col-header
                   :margin margin
                   :column-width column-width
+                  :max-column-width max-column-width
+                  :columns-widths columns-widths
                   :align align
                   :stream stream))
 
@@ -1485,12 +1507,14 @@ Output goes to STREAM."
          (objects (filter-lists objects :keys keys :exclude exclude))
          (nb-columns (largest-length objects))
          (cell-style (ensure-circular-list cell-style))
-         ;; the column width is made a circular list: use with POP.
-         (%column-width (shorten-columns-width
-                         (compute-columns-width objects)
-                         :max-column-width max-column-width))
-         (column-width (ensure-circular-list %column-width))
-         (width (1+ (reduce #'+ (subseq column-width 0 nb-columns))))
+         (%columns-widths (unless columns-widths
+                            (shorten-columns-width
+                             (compute-columns-width objects)
+                             :max-column-width max-column-width)))
+         ;; the columns widths is made a circular list: use with POP.
+         (computed-columns-widths (ensure-circular-list
+                                   (or columns-widths %columns-widths)))
+         (width (1+ (reduce #'+ (subseq computed-columns-widths 0 nb-columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))
          (row-index 0))
@@ -1503,7 +1527,7 @@ Output goes to STREAM."
                (when border-style
                  (align)
                  (set-style border-style stream)
-                 (dolist (i (subseq column-width 0 nb-columns))
+                 (dolist (i (subseq computed-columns-widths 0 nb-columns))
                    (check-type i (integer 1))
                    (princ (char border-chars 2) stream)
                    (dotimes (j (1- i))
@@ -1523,7 +1547,7 @@ Output goes to STREAM."
                (let ((i 0))
                  (dolist (cell items)
                    (let ((cell/s (string* cell))
-                         (width (pop column-width)))
+                         (width (pop computed-columns-widths)))
                      (v-border)
                      (set-style
                       (cond ((ends-with-subseq mark-suffix cell/s)
