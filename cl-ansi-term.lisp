@@ -1160,7 +1160,7 @@ Examples:
                 (col-header   nil)
                 (cols 1000)
                 (margin       0)
-                (column-width *column-width*)
+                column-width
                 (align        :left)
                 (stream       *standard-output*))
   "Print a table filling cells with OBJECTS.
@@ -1430,7 +1430,8 @@ Output goes to STREAM."
                       (col-header   nil)
                       ;; (cols 1000)
                       (margin       0)
-                      ;; (column-width *column-width*)
+                      (column-width *column-width*)
+                      columns-widths
                       (max-column-width *max-column-width*)
                       (align        :left)
                       (stream       *standard-output*)
@@ -1476,6 +1477,9 @@ Output goes to STREAM."
   See our tests for examples.
 
   "
+  (when column-width
+    (warn "ansi-term: the COLUMN-WIDTH argument is deprecated. Now the columns' widths are calculated and adapted to the terminal (see *TERMINAL-WIDTH*, its value is ~a). You can choose a max column width with *MAX-COLUMN-WIDTH* (its value is ~a)." *TERMINAL-WIDTH* *MAX-COLUMN-WIDTH*))
+
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (objects (filter-lists objects :keys keys :exclude exclude))
