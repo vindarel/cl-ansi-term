@@ -179,6 +179,17 @@ You can choose a set of keys (headers) or exclude some of them:
 +---------+---------+
 ~~~
 
+#### No borders
+
+Feel free and ignore borders with `:border-style nil`:
+
+```
+A   B
+1   2
+1   2
+```
+
+
 #### Adapting the columns' widths
 
 The `table` function adapts to the viewport.
