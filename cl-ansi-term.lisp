@@ -1296,7 +1296,7 @@ Output goes to STREAM."
                  (col-header   nil)
                  (cols 1000)
                  (margin       0)
-                 (column-width *column-width*)
+                 column-width
                  (align        :left)
                  (stream       *standard-output*))
   "Print a vertical table.
@@ -2193,6 +2193,7 @@ Examples:
                        (column-width *column-width*)
                        (align        :left)
                        (stream       *standard-output*)
+                       &ALLOW-OTHER-KEYS
                        )
   "Print a list of plists as a TABLE.
 

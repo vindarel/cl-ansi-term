@@ -136,7 +136,7 @@
   (table (list alist alist alist) :alists t)
 
   (banner "A list of alists, in columns, with a bigger column width")
-  (vtable (list alist alist alist) :COLUMN-WIDTH 20 :alists t)
+  (vtable (list alist alist alist) :column-width 20 :alists t)
 
   (banner "same, ignoring the column :b => TODO")
   (vtable (list alist alist alist)  :exclude :b :alists t)
