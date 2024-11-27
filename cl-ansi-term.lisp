@@ -275,11 +275,11 @@ STYLES are saved into `term::*styles*'."
   "Effects are now enabled everywhere, on real and dumb terminals, but we can control that.
 
 This function evaluates to T if:
-- `*enable-effects-on-dumb-terminals*' is T
-- STREAM has support for the effects and `*effects-enabled*' is not NIL."
-  (or *enable-effects-on-dumb-terminals*
-      (and *effects-enabled*
-           (interactive-stream-p stream))))
+- `*effects-enabled*' is T
+- STREAM has support for effects (calls to CL:INTERACTIVE-STREAM-P) and `*enable-effects-on-dumb-terminals*' is T."
+  (or *effects-enabled*
+      (and (interactive-stream-p stream)
+           *enable-effects-on-dumb-terminals*)))
 
 (defun set-style (style &optional (stream *standard-output*))
   "Sets terminal rendition according to defined STYLE. It does nothing if
