@@ -1566,7 +1566,7 @@ Output goes to STREAM."
              (v-border ()
                (when border-style
                  (set-style border-style stream)
-                 (princ (char border-chars 1))
+                 (princ (char border-chars 1) stream)
                  (set-style :default stream)))
 
              (print-row (index items &key headers)
