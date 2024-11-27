@@ -75,6 +75,7 @@ place.")
 
 (defparameter *column-width* 20 "The table cells' width (DEPRECATED).")
 (defparameter *max-column-width* 80 "The maximum table cells' width.")
+(defparameter *min-column-width* 3 "Should be at least 3")
 
 (defparameter *hooks* (make-hash-table)
   "This variable is bound to a hash table that provides access to lists of
@@ -1190,6 +1191,7 @@ Examples:
                 (margin       0)
                 column-width
                 (max-column-width *max-column-width*)
+                (min-column-width *min-column-width*)
                 (align        :left)
                 (stream       *stream*))
   "Print a table filling cells with OBJECTS.
@@ -1304,6 +1306,7 @@ Output goes to STREAM."
                   :margin margin
                   :column-width column-width
                   :max-column-width max-column-width
+                  :min-column-width min-column-width
                   :align align
                   :stream stream))
 
@@ -1412,7 +1415,6 @@ Output goes to STREAM."
 
 (defparameter *long-column-width* 20
   "The size at which we decide this cell content should be truncated.")
-(defparameter *min-column-width* 3 "Should be at least 3")
 
 (defun long-column-p (nb)
   (< *long-column-width* nb))
@@ -1432,7 +1434,8 @@ Output goes to STREAM."
     max-widths))
 
 (defun shorten-columns-width (max-widths &key (terminal-width *terminal-width*)
-                                           (max-column-width *max-column-width*))
+                                           (max-column-width *max-column-width*)
+                                           (min-column-width *min-column-width*))
   "MAX-WIDTHS is a list of numbers, representing the max columns width for each column.
   We want a column
   - to not be shrinker than *min-column-width* (3, to allow border characters)
@@ -1454,11 +1457,11 @@ Output goes to STREAM."
      ;; shorten the longest width
      (loop for width in max-widths
            with nb-of-long-cols = (count-if #'long-column-p max-widths)
-           with space-ok = (max *min-column-width*
+           with space-ok = (max min-column-width
                                 (loop :for width :in max-widths
                                       :if (not (long-column-p width))
                                         :summing width))
-           with space-to-share = (max *min-column-width*
+           with space-to-share = (max min-column-width
                                       (- terminal-width space-ok))
            if (long-column-p width)
              collect (min terminal-width
@@ -1483,6 +1486,7 @@ Output goes to STREAM."
                       (margin       0)
                       column-width
                       (max-column-width *max-column-width*)
+                      (min-column-width *min-column-width*)
                       (align        :left)
                       (stream       *stream*)
                       ;; accept :keys and :exclude.
@@ -1535,7 +1539,8 @@ Output goes to STREAM."
          (%columns-widths (or column-width
                               (shorten-columns-width
                                (compute-columns-width objects)
-                               :max-column-width max-column-width)))
+                               :max-column-width max-column-width
+                               :min-column-width min-column-width)))
          ;; the columns widths is made a circular list: use with POP.
          (computed-columns-widths (ensure-circular-list
                                    %columns-widths))
