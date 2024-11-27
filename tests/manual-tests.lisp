@@ -47,9 +47,17 @@
                              :color))))
   )
 
+
+;; Test different widths, adaptation to the viewport.
 (progn
 
   (let ((*enable-effects-on-dumb-terminals* nil))
+
+    (banner "The columns have a set width")
+    (table objects :plist t :column-width 20)
+    (banner "The columns have a different, chosen width")
+    (table objects :plist t :column-width '(10 20 30))
+
     (banner "Tables with large content, adapting to the terminal width." :space 1)
     ;; (cat-print "All tables should respect the same total width.")
     (table-lists '((pk "long title" "long story")
@@ -63,10 +71,6 @@
                    (1 "lisp" 9.9) (2 "common lisp the cool prog language with a super nice cookbook contributed by yours truly because it's cool" 100))
                  :max-column-width 40)
 
-    (banner "Here we choose our columns' widths precisely")
-    (table-lists '(("pk" "title" "price")
-                   (1 "lisp" 9.9) (2 "common lisp the cool prog language with a super nice cookbook contributed by yours truly because it's cool" 100))
-                   :columns-widths '(15 30 15))
     ))
 
 ;; plists

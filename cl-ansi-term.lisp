@@ -1162,7 +1162,6 @@ Examples:
                 (margin       0)
                 column-width
                 (max-column-width *max-column-width*)
-                columns-widths
                 (align        :left)
                 (stream       *standard-output*))
   "Print a table filling cells with OBJECTS.
@@ -1227,7 +1226,7 @@ See VTABLE to print the table vertically.
 Adapting the columns' width
 ---------------------------
 
-The TABLE function adapts to the viewport.
+The TABLE function adapts to not print content wider than the viewport.
 It respects the terminal's width (*TERMINAL-WIDTH*).
 
 If one or more columns take too much width (see *LONG-COLUMN-WIDTH*), they are truncated and
@@ -1235,7 +1234,9 @@ their cells content will be shortened with the unicode \"…\".
 
 Set :MAX-COLUMN-WIDTH (defaults to 80) to change the maximum width of any column.
 
-Set :COLUMNS-WIDTHS to give a width to each and every column.
+Set :COLUMN-WIDTH to give a width to columns.
+ If :COLUMN-WIDTH is a number, all the columns will have the same width (not exceeding the max).
+ If :COLUMN-WIDTH is a list of numbers, it sets the width of each respecting column.
 
 
 Style options
@@ -1275,7 +1276,6 @@ Output goes to STREAM."
                   :margin margin
                   :column-width column-width
                   :max-column-width max-column-width
-                  :columns-widths columns-widths
                   :align align
                   :stream stream))
 
@@ -1452,8 +1452,7 @@ Output goes to STREAM."
                       (col-header   nil)
                       ;; (cols 1000)
                       (margin       0)
-                      (column-width *column-width*)
-                      columns-widths
+                      column-width
                       (max-column-width *max-column-width*)
                       (align        :left)
                       (stream       *standard-output*)
@@ -1499,21 +1498,18 @@ Output goes to STREAM."
   See our tests for examples.
 
   "
-  (when column-width
-    (warn "ansi-term: the COLUMN-WIDTH argument is deprecated. Now the columns' widths are calculated and adapted to the terminal (see *TERMINAL-WIDTH*, its value is ~a). You can choose a max column width with *MAX-COLUMN-WIDTH* (its value is ~a)." *TERMINAL-WIDTH* *MAX-COLUMN-WIDTH*))
-
   (perform-hook :before-printing stream)
   (let* ((objects (mapcar #'ensure-cons objects))
          (objects (filter-lists objects :keys keys :exclude exclude))
          (nb-columns (largest-length objects))
          (cell-style (ensure-circular-list cell-style))
-         (%columns-widths (unless columns-widths
-                            (shorten-columns-width
-                             (compute-columns-width objects)
-                             :max-column-width max-column-width)))
+         (%columns-widths (or column-width
+                              (shorten-columns-width
+                               (compute-columns-width objects)
+                               :max-column-width max-column-width)))
          ;; the columns widths is made a circular list: use with POP.
          (computed-columns-widths (ensure-circular-list
-                                   (or columns-widths %columns-widths)))
+                                   %columns-widths))
          (width (1+ (reduce #'+ (subseq computed-columns-widths 0 nb-columns))))
          (border-chars (string border-chars))
          (mark-suffix (string mark-suffix))

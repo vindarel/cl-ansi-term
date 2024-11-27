@@ -215,15 +215,15 @@ their cells content will be shortened with the unicode \"…\".
 +-------------------------------------+---+-------------------------------------+
 ```
 
-Each column can have a different length. Set `:columns-widths` to
-give a width to each and every column:
+Each column can have the same width or a different
+one. `:column-width` can be a number or a list of numbers:
 
 
 ~~~lisp
 (term:table '(("name" "age" "email")
               ("me" 7 "some@blah")
               ("me" 7 "some@with-some-longer.email"))
-             :columns-widths '(10 4 20))
+             :column-width '(10 4 20))
 +---------+---+-------------------+
 |name     |age|email              |
 +---------+---+-------------------+
