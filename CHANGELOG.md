@@ -9,6 +9,8 @@
 - progress-bar prints something on a dumb terminal
 - colors and styles are enabled everywhere, including on "dumb" (non interactive) terminals like Emacs' Slime.
 - <2024-11-25> adapt the columns' widths to te terminal-width
+- fix missing stream to v-border
+- helper macro to print tables to string correctly
 
 ## CL ANSI Term 0.1.2
 

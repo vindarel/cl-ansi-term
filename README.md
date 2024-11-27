@@ -397,6 +397,10 @@ and we print in green the other cells.
                             :color))))
 ~~~
 
+### Print tables to string
+
+See `term:with-table-output-to-string`.
+
 
 ### Docstrings
 

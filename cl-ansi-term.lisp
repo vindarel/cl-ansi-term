@@ -46,7 +46,8 @@
               #:alist-table
               #:title
               #:banner-fmt
-              #:title-fmt)
+              #:title-fmt
+              #:with-table-output-to-string)
   )
 
 (in-package #:cl-ansi-term)
@@ -57,6 +58,9 @@
 ;;                        Parameters and Constants                        ;;
 ;;                                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar *stream* *standard-output*
+  "Default stream. Can be let-bound to print to strings.")
 
 (defparameter *effects-enabled* t
   "If this variable is bound to non-NIL value, graphic rendition
@@ -158,6 +162,30 @@ by real-world terminals.")
   "If non-nil, if the TABLE function can't clearly distinguish
   between a list of plists and a list of regular lists,
   it will give precedence to displaying the data as plists.")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                                                                        ;;
+;;                                 Macros                                 ;;
+;;                                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar %newline-before-row% nil
+  "Necessary when doing with-output-to-string because something.")
+
+(defmacro with-table-output-to-string ((&key effects) &body body)
+  "Call BODY with with-output-to-string, and fixing a glitch in the table output.
+
+  If :EFFECTS is t, enable effects.
+
+  Set %newline-before-row% to fix a difference in output between output to a string and to a stream. This is a bug we have to chase for."
+  `(with-output-to-string (s)
+     (let ((%newline-before-row% t)
+           (*effects-enabled* ,effects)
+           (*stream* s))
+       ,@body)
+     s))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -281,7 +309,7 @@ This function evaluates to T if:
       (and (interactive-stream-p stream)
            *enable-effects-on-dumb-terminals*)))
 
-(defun set-style (style &optional (stream *standard-output*))
+(defun set-style (style &optional (stream *stream*))
   "Sets terminal rendition according to defined STYLE. It does nothing if
 `*effects-enabled*' is NIL or output stream is not interactive (e.g.
 redirected to a file)."
@@ -298,7 +326,7 @@ redirected to a file)."
 ;;                                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun print-partially (text start end &optional (stream *standard-output*))
+(defun print-partially (text start end &optional (stream *stream*))
   "Partially print given TEXT starting from START character until END
 character is reached. Output will be colorized if `*coloration*' is bound to
 alist that describes how to colorize the output, see `*coloration*'. All
@@ -310,7 +338,7 @@ output goes to STREAM."
       (set-style (cdr (pop *coloration*)) stream))
     (princ (char text i) stream)))
 
-(defun print-white-space (width &optional (stream *standard-output*))
+(defun print-white-space (width &optional (stream *stream*))
   "Print WIDTH white-spaces to STREAM."
   (dotimes (i width)
     (princ #\space stream)))
@@ -322,7 +350,7 @@ value that will be used."
   `(let ((,var (+ ,var (if (plusp ,var) 0 *terminal-width*))))
      ,@body))
 
-(defun align-object (width align &optional (stream *standard-output*))
+(defun align-object (width align &optional (stream *stream*))
   "Print white-space to STREAM so object occupying WIDTH columns will be
 aligned according to ALIGN if printed immediately after the white space."
   (print-white-space
@@ -337,7 +365,7 @@ aligned according to ALIGN if printed immediately after the white space."
   "Converts printable object OBJECT to its aesthetic string representation."
   (format nil "~a" object))
 
-(defun print-filler (filler width style &optional (stream *standard-output*))
+(defun print-filler (filler width style &optional (stream *stream*))
   "Print WIDTH symbols of FILLER to STREAM. Use STYLE for graphic
 rendition."
   (multiple-value-bind (rough rest)
@@ -372,7 +400,7 @@ rendition."
                       (margin      0)
                       (fill-column 0)
                       (align       :left)
-                      (stream      *standard-output*))
+                      (stream      *stream*))
   "Print concatenation of OBJECTS using FILL-COLUMN so that line breaks
 don't happen inside words, only between them. OBJECTS must be a list
 designator. It can consist of printable objects and lists where CAR is a
@@ -443,7 +471,7 @@ can be aligned with ALIGN parameter. Output goes to STREAM."
                     (margin      0)
                     (fill-column 0)
                     (align       :left)
-                    (stream      *standard-output*))
+                    (stream      *stream*))
   "Concatenate OBJECTS and print them. OBJECTS must be a list designator
 that consists of printable objects and lists where CAR is a printable object
 and CADR is a keyword that denotes style of the object. Unspecified styles
@@ -526,7 +554,7 @@ documentation of the PRINT-STYLED function. Return a list, suitable for passing 
                 (margin      0)
                 (fill-column 0)
                 (align       :left)
-                (stream      *standard-output*))
+                (stream      *stream*))
   "Print text with CAT-PRINT, but apply CONTROL-STRING with the arguments from ARGS, where each tilde character of CONTROL-STRING is replaced with an argument.
 
   A special syntax can be used to apply styles.
@@ -572,7 +600,7 @@ Output goes to STREAM."
              (style  :default)
              (width  0)
              (align  :left)
-             (stream *standard-output*))
+             (stream *stream*))
   "Print a horizontal line. Characters in the line are created by repeating
 given FILLER until WIDTH characters accumulated. If WIDTH is not a positive
 number, `*terminal-width*' will be added to it to get positive WIDTH. STYLE
@@ -588,7 +616,7 @@ or :CENTER. Output goes to STREAM."
   nil)
 
 (defun vspace (&key
-                 (stream *standard-output*)
+                 (stream *stream*)
                  (space 3))
   "Print vertical space, aka a SPACE amount of newlines,
   to STREAM (standard output by default).
@@ -601,7 +629,7 @@ or :CENTER. Output goes to STREAM."
   (perform-hook :after-printing))
 
 (defun banner (title &key
-                       (stream *standard-output*)
+                       (stream *stream*)
                        (base-style :default)
                        (width 0)
                        (space 1)
@@ -667,7 +695,7 @@ or :CENTER. Output goes to STREAM."
                        (bar-style   :default)
                        (num-style   :default)
                        (bar-width   -40)
-                       (stream      *standard-output*))
+                       (stream      *stream*))
   "Print a progress bar with FILLER characters advanced to PROGRESS percent.
 
 Needs an interactive terminal to have full effect.
@@ -748,7 +776,7 @@ Output goes to STREAM."
                  (margin       0)
                  (level-margin 2)
                  (fill-column  0)
-                 (stream       *standard-output*))
+                 (stream       *stream*))
   "Print an unordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
 list where CAR is the list item and CDR is sublist of the item.
@@ -846,7 +874,7 @@ Output goes to STREAM."
                  (margin       0)
                  (level-margin 3)
                  (fill-column  0)
-                 (stream       *standard-output*))
+                 (stream       *stream*))
   "Print an ordered list according to TREE. If we consider TREE a list,
 every element must be either a printable object to print as a list item or a
 list where CAR is list item and CDR is sublist of the item.
@@ -1163,7 +1191,7 @@ Examples:
                 column-width
                 (max-column-width *max-column-width*)
                 (align        :left)
-                (stream       *standard-output*))
+                (stream       *stream*))
   "Print a table filling cells with OBJECTS.
 
   Apply styles and adapt the columns' width to the terminal.
@@ -1298,7 +1326,7 @@ Output goes to STREAM."
                  (margin       0)
                  column-width
                  (align        :left)
-                 (stream       *standard-output*))
+                 (stream       *stream*))
   "Print a vertical table.
 
   See TABLE for all options and the accepted OBJECTS types.
@@ -1455,7 +1483,7 @@ Output goes to STREAM."
                       column-width
                       (max-column-width *max-column-width*)
                       (align        :left)
-                      (stream       *standard-output*)
+                      (stream       *stream*)
                       ;; accept :keys and :exclude.
                     &ALLOW-OTHER-KEYS   ; this one maybe not
                       )
@@ -1522,6 +1550,9 @@ Output goes to STREAM."
              (h-border ()
                (when border-style
                  (align)
+                 ;; when printing to string…
+                 (when %newline-before-row%
+                   (terpri stream))
                  (set-style border-style stream)
                  (dolist (i (subseq computed-columns-widths 0 nb-columns))
                    (check-type i (integer 1))
@@ -1594,7 +1625,7 @@ Output goes to STREAM."
                                (margin       0)
                                (column-width *column-width*)
                                (align        :left)
-                               (stream       *standard-output*)
+                               (stream       *stream*)
                                &ALLOW-OTHER-KEYS)
   "Print a table where the headers are in the first column, not the first row.
 
@@ -1675,7 +1706,7 @@ Examples:
                             (margin       0)
                             (column-width *column-width*)
                             (align        :left)
-                            (stream       *standard-output*)
+                            (stream       *stream*)
                     &ALLOW-OTHER-KEYS
                       )
   "Print PLIST as a table: the plist keys as the headers row, the plist values as one row below.
@@ -1726,7 +1757,7 @@ Examples:
                        (margin       0)
                        (column-width *column-width*)
                        (align        :left)
-                       (stream       *standard-output*)
+                       (stream       *stream*)
                             &ALLOW-OTHER-KEYS
                        )
   "Print PLIST as a table, where the first column is the keys, the second column is the value.
@@ -1784,7 +1815,7 @@ Examples:
                             (margin       0)
                             (column-width *column-width*)
                             (align        :left)
-                            (stream       *standard-output*)
+                            (stream       *stream*)
                     &ALLOW-OTHER-KEYS
                       )
   "Print the alist ALIST as a table: the keys as the headers row, the values as one row below.
@@ -1819,7 +1850,7 @@ Examples:
                             (margin       0)
                             (column-width *column-width*)
                             (align        :left)
-                            (stream       *standard-output*)
+                            (stream       *stream*)
                     &ALLOW-OTHER-KEYS
                       )
   "Print the alist ALIST as a table: the keys as the headers row, the values as one row below.
@@ -1854,7 +1885,7 @@ Examples:
                             (margin       0)
                             (column-width *column-width*)
                             (align        :left)
-                            (stream       *standard-output*)
+                            (stream       *stream*)
                     &ALLOW-OTHER-KEYS
                       )
   "Print the list of alists as a table.
@@ -1889,7 +1920,7 @@ Examples:
                             (margin       0)
                             (column-width *column-width*)
                             (align        :left)
-                            (stream       *standard-output*)
+                            (stream       *stream*)
                     &ALLOW-OTHER-KEYS
                       )
   "Print the list of alists as a vtable.
@@ -1928,7 +1959,7 @@ Examples:
                       (margin       0)
                       (column-width *column-width*)
                       (align        :left)
-                      (stream       *standard-output*)
+                      (stream       *stream*)
                  &allow-other-keys
                    )
   "Print the hash-table HT as a table: the keys as the headers row, the values as one row below.
@@ -1999,7 +2030,7 @@ Examples:
                        (margin       0)
                        (column-width *column-width*)
                        (align        :left)
-                       (stream       *standard-output*)
+                       (stream       *stream*)
                   &ALLOW-OTHER-KEYS
                        )
   "Print the hash-table HT as a table, where the first column is the keys, the second column is the value.
@@ -2056,7 +2087,7 @@ Examples:
                             (margin       0)
                             (column-width *column-width*)
                             (align        :left)
-                            (stream       *standard-output*)
+                            (stream       *stream*)
                   &ALLOW-OTHER-KEYS
                             )
   "Print the list of hash-tables HT-LIST as a table: the keys as the first row, the values of each hash-table as one row below.
@@ -2119,7 +2150,7 @@ Examples:
                      (margin       0)
                      (column-width *column-width*)
                      (align        :left)
-                     (stream       *standard-output*)
+                     (stream       *stream*)
                    &ALLOW-OTHER-KEYS
                      )
   "Print the list of HASH-TABLES as a vertical table, where the first column is the keys,
@@ -2188,7 +2219,7 @@ Examples:
                        (margin       0)
                        (column-width *column-width*)
                        (align        :left)
-                       (stream       *standard-output*)
+                       (stream       *stream*)
                        &ALLOW-OTHER-KEYS
                        )
   "Print a list of plists as a TABLE.
@@ -2251,7 +2282,7 @@ Examples:
                         (margin       0)
                         (column-width *column-width*)
                         (align        :left)
-                        (stream       *standard-output*)
+                        (stream       *stream*)
                         &ALLOW-OTHER-KEYS
                         )
   "Print a list of plists as a VTABLE.
