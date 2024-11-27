@@ -1458,7 +1458,8 @@ Output goes to STREAM."
                                 (loop :for width :in max-widths
                                       :if (not (long-column-p width))
                                         :summing width))
-           with space-to-share = (- terminal-width space-ok)
+           with space-to-share = (max *min-column-width*
+                                      (- terminal-width space-ok))
            if (long-column-p width)
              collect (min terminal-width
                           max-column-width
