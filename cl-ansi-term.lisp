@@ -1451,7 +1451,7 @@ Output goes to STREAM."
   are (4 43 43), for a total width of 90."
   ;; Possible improvements: look at the columns' mean width, etc.
   (cond
-    ((< (apply #'+ max-widths) terminal-width)
+    ((< (reduce #'+ max-widths) terminal-width)
      max-widths)
     (t
      ;; shorten the longest width
