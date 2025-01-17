@@ -474,6 +474,7 @@ Output goes to STREAM.
 
 - https://github.com/AccelerationNet/data-table
 - https://github.com/telephil/cl-ascii-table/
+- https://github.com/Shinmera/text-draw - boxes, backgrounds, lines, arrows…
 
 Blog posts:
 
@@ -495,6 +496,6 @@ Preston
 ## License
 
 Copyright © 2015–2018 Mark Karpov
-Copyright © 2018–2024 Vindarel
+Copyright © 2018–present Vindarel
 
 Distributed under GNU GPL, version 3.
